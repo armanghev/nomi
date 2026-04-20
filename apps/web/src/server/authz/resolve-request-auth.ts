@@ -13,6 +13,7 @@ type RequestAuth =
 
 type ResolveRequestAuthDependencies = {
   getSession?: () => Promise<{ user?: { id?: string } } | null>;
+  lookupTokenOwnerId?: (tokenHash: string) => Promise<string | null>;
 };
 
 export async function resolveRequestAuth(
@@ -25,10 +26,17 @@ export async function resolveRequestAuth(
     const token = header.slice("Bearer ".length).trim();
 
     if (token.length > 0) {
+      const tokenHash = hashToken(token);
+      const ownerId = await deps.lookupTokenOwnerId?.(tokenHash);
+
+      if (!ownerId) {
+        return null;
+      }
+
       return {
-        ownerId: "owner_from_token_lookup",
+        ownerId,
         authMethod: "token",
-        tokenHash: hashToken(token)
+        tokenHash
       };
     }
   }
