@@ -1,72 +1,84 @@
-"use client";
+import { and, asc, desc, eq } from "drizzle-orm";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { conversations, messages } from "@/db/schema/app";
+import { ChatPageClient } from "@/components/chat/chat-page-client";
+import type {
+  ConversationDetail,
+  ConversationSummary,
+} from "@/components/chat/types";
 
-import { useState } from "react";
-import { ChatScreen } from "@/components/chat/chat-screen";
+async function loadInitialConversations(ownerId: string) {
+  return db
+    .select({
+      id: conversations.id,
+      title: conversations.title,
+    })
+    .from(conversations)
+    .where(eq(conversations.ownerId, ownerId))
+    .orderBy(desc(conversations.updatedAt));
+}
 
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
+async function loadConversation(
+  ownerId: string,
+  id: string
+): Promise<ConversationDetail | null> {
+  const [conversation] = await db
+    .select({
+      id: conversations.id,
+      title: conversations.title,
+    })
+    .from(conversations)
+    .where(and(eq(conversations.ownerId, ownerId), eq(conversations.id, id)))
+    .limit(1);
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  async function onSend(content: string) {
-    const optimisticMessageId = crypto.randomUUID();
-
-    setErrorMessage(null);
-    setIsSending(true);
-    setMessages((current) => [
-      ...current,
-      { id: optimisticMessageId, role: "user", content },
-    ]);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, content }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Chat request failed");
-      }
-
-      const payload = (await response.json()) as {
-        conversationId?: string;
-        reply?: string;
-      };
-
-      setConversationId(payload.conversationId ?? conversationId);
-
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: payload.reply ?? "",
-        },
-      ]);
-    } catch {
-      setMessages((current) =>
-        current.filter((message) => message.id !== optimisticMessageId)
-      );
-      setErrorMessage("Couldn't send that message. Try again.");
-    } finally {
-      setIsSending(false);
-    }
+  if (!conversation) {
+    return null;
   }
 
+  const conversationMessages = await db
+    .select({
+      id: messages.id,
+      role: messages.role,
+      content: messages.content,
+    })
+    .from(messages)
+    .where(eq(messages.conversationId, id))
+    .orderBy(asc(messages.createdAt));
+
+  return {
+    ...conversation,
+    messages: conversationMessages.map((message) => ({
+      ...message,
+      role: message.role === "assistant" ? "assistant" : "user",
+    })),
+  };
+}
+
+export default async function ChatPage() {
+  const session = await auth();
+  const ownerId = session?.user?.id;
+
+  if (!ownerId) {
+    return (
+      <ChatPageClient
+        initialConversations={[]}
+        initialConversation={null}
+      />
+    );
+  }
+
+  const initialConversations = (await loadInitialConversations(
+    ownerId
+  )) satisfies ConversationSummary[];
+  const initialConversation = initialConversations[0]
+    ? await loadConversation(ownerId, initialConversations[0].id)
+    : null;
+
   return (
-    <ChatScreen
-      messages={messages}
-      onSend={onSend}
-      isSending={isSending}
-      errorMessage={errorMessage}
+    <ChatPageClient
+      initialConversations={initialConversations}
+      initialConversation={initialConversation}
     />
   );
 }
