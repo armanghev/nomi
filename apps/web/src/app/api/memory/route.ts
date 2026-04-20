@@ -70,13 +70,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = createMemorySchema.parse(await request.json());
+  let payload: unknown;
+
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const parsed = createMemorySchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const service = createMemoryRepository();
 
   const created = await service.create({
     ownerId: session.user.id,
-    label: body.label,
-    value: body.value,
+    label: parsed.data.label,
+    value: parsed.data.value,
     authMethod: "session"
   });
 
