@@ -10,15 +10,25 @@ const appEnvSchema = z.object({
   OWNER_EMAIL: z.string().email()
 });
 
+const aiEnvSchema = z.object({
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
+  GEMINI_MODEL: z.string().min(1).default("gemini-3-flash-preview")
+});
+
 const dbEnvSchema = z.object({
   DATABASE_URL: z.string().url()
 });
 
 export type AppEnv = z.infer<typeof appEnvSchema>;
+export type AiEnv = z.infer<typeof aiEnvSchema>;
 export type DbEnv = z.infer<typeof dbEnvSchema>;
 
 export function readEnv(source: Record<string, string | undefined>): AppEnv {
   return appEnvSchema.parse(source);
+}
+
+export function readAiEnv(source: Record<string, string | undefined>): AiEnv {
+  return aiEnvSchema.parse(source);
 }
 
 export function readDbEnv(source: Record<string, string | undefined>): DbEnv {

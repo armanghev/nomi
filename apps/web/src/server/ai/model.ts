@@ -1,6 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
-import { readEnv } from "@/env";
+import { readAiEnv } from "@/env";
 
 type MemoryItem = {
   label: string;
@@ -11,7 +11,7 @@ export async function generateAssistantReply(
   prompt: string,
   memory: Array<MemoryItem>
 ) {
-  const env = readEnv(process.env);
+  const env = readAiEnv(process.env);
   const memoryContext = memory.length
     ? memory.map((item) => `${item.label}: ${item.value}`).join("\n")
     : "No active memory.";
