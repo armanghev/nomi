@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { apiTokens, auditLogs, memoryItems } from "@/db/schema/app";
+import { auditLogs, memoryItems } from "@/db/schema/app";
 import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
+import { lookupActiveTokenOwnerId } from "@/server/authz/token-auth";
 import { createMemoryService } from "@/server/memory/memory-service";
 
 const createMemorySchema = z.object({
@@ -65,17 +66,7 @@ function createMemoryRepository() {
 
 export async function GET(request: Request) {
   const requestAuth = await resolveRequestAuth(request, {
-    lookupTokenOwnerId: async (tokenHash) => {
-      const [token] = await db
-        .select({
-          ownerId: apiTokens.ownerId
-        })
-        .from(apiTokens)
-        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
-        .limit(1);
-
-      return token?.ownerId ?? null;
-    }
+    lookupTokenOwnerId: lookupActiveTokenOwnerId
   });
 
   if (!requestAuth) {
@@ -90,17 +81,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const requestAuth = await resolveRequestAuth(request, {
-    lookupTokenOwnerId: async (tokenHash) => {
-      const [token] = await db
-        .select({
-          ownerId: apiTokens.ownerId
-        })
-        .from(apiTokens)
-        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
-        .limit(1);
-
-      return token?.ownerId ?? null;
-    }
+    lookupTokenOwnerId: lookupActiveTokenOwnerId
   });
 
   if (!requestAuth) {

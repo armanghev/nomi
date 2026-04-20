@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { apiTokens, conversations, messages } from "@/db/schema/app";
+import { conversations, messages } from "@/db/schema/app";
 import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
+import { lookupActiveTokenOwnerId } from "@/server/authz/token-auth";
 import { createHistoryService } from "@/server/history/history-service";
 
 function createHistoryRepository() {
@@ -74,17 +75,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const requestAuth = await resolveRequestAuth(request, {
-    lookupTokenOwnerId: async (tokenHash) => {
-      const [token] = await db
-        .select({
-          ownerId: apiTokens.ownerId
-        })
-        .from(apiTokens)
-        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
-        .limit(1);
-
-      return token?.ownerId ?? null;
-    }
+    lookupTokenOwnerId: lookupActiveTokenOwnerId
   });
 
   if (!requestAuth) {
@@ -107,17 +98,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const requestAuth = await resolveRequestAuth(request, {
-    lookupTokenOwnerId: async (tokenHash) => {
-      const [token] = await db
-        .select({
-          ownerId: apiTokens.ownerId
-        })
-        .from(apiTokens)
-        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
-        .limit(1);
-
-      return token?.ownerId ?? null;
-    }
+    lookupTokenOwnerId: lookupActiveTokenOwnerId
   });
 
   if (!requestAuth) {

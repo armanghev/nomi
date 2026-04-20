@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { apiTokens, conversations, memoryItems, messages } from "@/db/schema/app";
+import { conversations, memoryItems, messages } from "@/db/schema/app";
 import {
   ChatConversationNotFoundError,
   createChatService
 } from "@/server/chat/chat-service";
 import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
+import { lookupActiveTokenOwnerId } from "@/server/authz/token-auth";
 import { generateAssistantReply } from "@/server/ai/model";
 import { writeAuditLog } from "@/server/audit/audit-log";
 
@@ -70,31 +71,34 @@ function createChatRepository() {
 
 export async function POST(request: Request) {
   const requestAuth = await resolveRequestAuth(request, {
-    lookupTokenOwnerId: async (tokenHash) => {
-      const [token] = await db
-        .select({
-          ownerId: apiTokens.ownerId
-        })
-        .from(apiTokens)
-        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
-        .limit(1);
-
-      return token?.ownerId ?? null;
-    }
+    lookupTokenOwnerId: lookupActiveTokenOwnerId
   });
 
   if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = requestSchema.parse(await request.json());
+  let payload: unknown;
+
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const parsed = requestSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const service = createChatRepository();
 
   try {
     const result = await service.sendMessage({
       ownerId: requestAuth.ownerId,
-      conversationId: body.conversationId,
-      content: body.content,
+      conversationId: parsed.data.conversationId,
+      content: parsed.data.content,
       authMethod: requestAuth.authMethod
     });
 
