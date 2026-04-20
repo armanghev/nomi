@@ -7,6 +7,6 @@
     "build": "pnpm --dir apps/web build",
     "lint": "pnpm --dir apps/web lint",
     "typecheck": "pnpm --dir apps/web exec tsc --noEmit",
-    "test": "pnpm --dir apps/web vitest run"
+    "test": "pnpm --dir apps/web test"
   }
 }
