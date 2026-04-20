@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, asc, desc, eq } from "drizzle-orm";
-import { auth } from "@/auth";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { conversations, messages } from "@/db/schema/app";
+import { apiTokens, conversations, messages } from "@/db/schema/app";
+import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
 import { createHistoryService } from "@/server/history/history-service";
 
 function createHistoryRepository() {
@@ -69,16 +69,31 @@ function createHistoryRepository() {
   });
 }
 
-export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const requestAuth = await resolveRequestAuth(request, {
+    lookupTokenOwnerId: async (tokenHash) => {
+      const [token] = await db
+        .select({
+          ownerId: apiTokens.ownerId
+        })
+        .from(apiTokens)
+        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
+        .limit(1);
 
-  if (!session?.user?.id) {
+      return token?.ownerId ?? null;
+    }
+  });
+
+  if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await context.params;
   const service = createHistoryRepository();
-  const conversation = await service.get(session.user.id, id);
+  const conversation = await service.get(requestAuth.ownerId, id);
 
   if (!conversation) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -87,17 +102,32 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
   return NextResponse.json(conversation);
 }
 
-export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const requestAuth = await resolveRequestAuth(request, {
+    lookupTokenOwnerId: async (tokenHash) => {
+      const [token] = await db
+        .select({
+          ownerId: apiTokens.ownerId
+        })
+        .from(apiTokens)
+        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
+        .limit(1);
 
-  if (!session?.user?.id) {
+      return token?.ownerId ?? null;
+    }
+  });
+
+  if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await context.params;
   const service = createHistoryRepository();
 
-  await service.remove(session.user.id, id);
+  await service.remove(requestAuth.ownerId, id);
 
   return NextResponse.json({ deleted: true, id });
 }

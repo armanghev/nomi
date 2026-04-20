@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
-import { auth } from "@/auth";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLogs, memoryItems } from "@/db/schema/app";
+import { apiTokens, auditLogs, memoryItems } from "@/db/schema/app";
+import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
 import { createMemoryService } from "@/server/memory/memory-service";
 
 function createMemoryRepository() {
@@ -56,10 +56,25 @@ function createMemoryRepository() {
   });
 }
 
-export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const requestAuth = await resolveRequestAuth(request, {
+    lookupTokenOwnerId: async (tokenHash) => {
+      const [token] = await db
+        .select({
+          ownerId: apiTokens.ownerId
+        })
+        .from(apiTokens)
+        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
+        .limit(1);
 
-  if (!session?.user?.id) {
+      return token?.ownerId ?? null;
+    }
+  });
+
+  if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -67,9 +82,9 @@ export async function DELETE(_: Request, context: { params: Promise<{ id: string
   const service = createMemoryRepository();
 
   await service.remove({
-    ownerId: session.user.id,
+    ownerId: requestAuth.ownerId,
     id,
-    authMethod: "session"
+    authMethod: requestAuth.authMethod
   });
 
   return NextResponse.json({ deleted: true, id });

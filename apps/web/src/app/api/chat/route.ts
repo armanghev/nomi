@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
+import { db } from "@/db";
+import { apiTokens } from "@/db/schema/app";
 import { createChatService } from "@/server/chat/chat-service";
 import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
 import { generateAssistantReply } from "@/server/ai/model";
@@ -10,7 +13,19 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const requestAuth = await resolveRequestAuth(request);
+  const requestAuth = await resolveRequestAuth(request, {
+    lookupTokenOwnerId: async (tokenHash) => {
+      const [token] = await db
+        .select({
+          ownerId: apiTokens.ownerId
+        })
+        .from(apiTokens)
+        .where(and(eq(apiTokens.tokenHash, tokenHash), isNull(apiTokens.revokedAt)))
+        .limit(1);
+
+      return token?.ownerId ?? null;
+    }
+  });
 
   if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
