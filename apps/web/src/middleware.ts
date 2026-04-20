@@ -1,16 +1,9 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { withAuth } from "next-auth/middleware";
 
-export default auth((request) => {
-  const isProtected =
-    request.nextUrl.pathname.startsWith("/chat") ||
-    request.nextUrl.pathname.startsWith("/settings");
-
-  if (isProtected && !request.auth) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
-  }
-
-  return NextResponse.next();
+export default withAuth({
+  pages: {
+    signIn: "/sign-in",
+  },
 });
 
 export const config = {
