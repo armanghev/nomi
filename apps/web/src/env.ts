@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const envSchema = z.object({
+const appEnvSchema = z.object({
   AUTH_SECRET: z.string().min(1),
   AUTH_GOOGLE_ID: z.string().min(1),
   AUTH_GOOGLE_SECRET: z.string().min(1),
@@ -10,10 +10,17 @@ const envSchema = z.object({
   OWNER_EMAIL: z.string().email()
 });
 
-export type AppEnv = z.infer<typeof envSchema>;
+const dbEnvSchema = z.object({
+  DATABASE_URL: z.string().url()
+});
+
+export type AppEnv = z.infer<typeof appEnvSchema>;
+export type DbEnv = z.infer<typeof dbEnvSchema>;
 
 export function readEnv(source: Record<string, string | undefined>): AppEnv {
-  return envSchema.parse(source);
+  return appEnvSchema.parse(source);
 }
 
-export const env = readEnv(process.env);
+export function readDbEnv(source: Record<string, string | undefined>): DbEnv {
+  return dbEnvSchema.parse(source);
+}
