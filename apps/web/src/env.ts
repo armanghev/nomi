@@ -5,8 +5,8 @@ const appEnvSchema = z.object({
   AUTH_GOOGLE_ID: z.string().min(1),
   AUTH_GOOGLE_SECRET: z.string().min(1),
   DATABASE_URL: z.string().url(),
-  OPENAI_API_KEY: z.string().min(1),
-  OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
+  GEMINI_MODEL: z.string().min(1).default("gemini-3-flash-preview"),
   OWNER_EMAIL: z.string().email()
 });
 

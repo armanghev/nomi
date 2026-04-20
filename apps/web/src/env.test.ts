@@ -9,7 +9,7 @@ describe("readEnv", () => {
         AUTH_GOOGLE_ID: "google-id",
         AUTH_GOOGLE_SECRET: "google-secret",
         DATABASE_URL: "postgres://user:pass@host/db",
-        OPENAI_API_KEY: "key"
+        GOOGLE_GENERATIVE_AI_API_KEY: "key"
       })
     ).toThrow("OWNER_EMAIL");
   });
@@ -21,7 +21,7 @@ describe("readEnv", () => {
         AUTH_GOOGLE_ID: "google-id",
         AUTH_GOOGLE_SECRET: "google-secret",
         DATABASE_URL: "postgres://user:pass@host/db",
-        OPENAI_API_KEY: "key",
+        GOOGLE_GENERATIVE_AI_API_KEY: "key",
         OWNER_EMAIL: "you@example.com"
       }).OWNER_EMAIL
     ).toBe("you@example.com");
