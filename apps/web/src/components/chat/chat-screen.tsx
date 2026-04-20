@@ -13,9 +13,15 @@ type ChatScreenProps = {
   messages: ChatMessage[];
   isSending: boolean;
   onSend: (content: string) => Promise<void>;
+  errorMessage?: string | null;
 };
 
-export function ChatScreen({ messages, isSending, onSend }: ChatScreenProps) {
+export function ChatScreen({
+  messages,
+  isSending,
+  onSend,
+  errorMessage,
+}: ChatScreenProps) {
   const [value, setValue] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -73,6 +79,16 @@ export function ChatScreen({ messages, isSending, onSend }: ChatScreenProps) {
               ))
             )}
           </section>
+
+          {errorMessage ? (
+            <p
+              className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+              role="status"
+              aria-live="polite"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
         </div>
       </main>
 

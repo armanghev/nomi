@@ -17,4 +17,19 @@ describe("ChatScreen", () => {
       expect(onSend).toHaveBeenCalledWith("Summarize my day");
     });
   });
+
+  it("does not submit whitespace-only input", async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+
+    render(<ChatScreen messages={[]} onSend={onSend} isSending={false} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Ask Nomi anything"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(onSend).not.toHaveBeenCalled();
+    });
+  });
 });
