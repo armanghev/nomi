@@ -10,6 +10,10 @@ type ChatDependencies = {
     prompt: string;
     memory: Array<{ label: string; value: string }>;
   }) => Promise<string>;
+  getConversation: (args: {
+    ownerId: string;
+    id: string;
+  }) => Promise<{ id: string } | null>;
   createConversation: (args: {
     ownerId: string;
     title: string;
@@ -31,16 +35,30 @@ type ChatDependencies = {
   }) => Promise<void>;
 };
 
+export class ChatConversationNotFoundError extends Error {
+  constructor(conversationId: string) {
+    super(`Conversation not found: ${conversationId}`);
+    this.name = "ChatConversationNotFoundError";
+  }
+}
+
 export function createChatService(deps: ChatDependencies) {
   return {
     async sendMessage(input: ChatInput) {
       const conversation =
         input.conversationId !== null
-          ? { id: input.conversationId, title: input.content.slice(0, 80) }
+          ? await deps.getConversation({
+              ownerId: input.ownerId,
+              id: input.conversationId
+            })
           : await deps.createConversation({
               ownerId: input.ownerId,
               title: input.content.slice(0, 80)
             });
+
+      if (!conversation) {
+        throw new ChatConversationNotFoundError(input.conversationId ?? "");
+      }
 
       const memory = await deps.loadActiveMemory(input.ownerId);
       await deps.saveMessage({

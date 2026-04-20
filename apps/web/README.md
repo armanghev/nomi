@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nomi Web
 
-## Getting Started
+Private single-user Next.js app for Nomi. The web app handles owner-only sign-in, Gemini-backed chat, conversation and memory persistence in Neon via Drizzle, token-based API access, and audit logging.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 App Router
+- NextAuth v5 with Google sign-in
+- Neon Postgres + Drizzle ORM
+- Gemini via `@ai-sdk/google`
+- Vitest + ESLint + TypeScript
+
+## Required Environment Variables
+
+Set these in `apps/web/.env.local` for local development:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+DATABASE_URL=
+GOOGLE_GENERATIVE_AI_API_KEY=
+GEMINI_MODEL=gemini-3-flash-preview
+OWNER_EMAIL=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Notes:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `OWNER_EMAIL` must match the Google account allowed to sign in.
+- `DATABASE_URL` should point at your Neon Postgres database.
+- `GEMINI_MODEL` is optional in practice because the app has a default, but setting it explicitly keeps local and Vercel config aligned.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Install And Run
 
-## Learn More
+From the repo root:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app runs at [http://localhost:3000](http://localhost:3000).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+If you prefer running directly from the app directory:
 
-## Deploy on Vercel
+```bash
+pnpm --dir apps/web dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Quality Gate
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run these from the repo root:
+
+```bash
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+App-local equivalents:
+
+```bash
+pnpm --dir apps/web test
+pnpm --dir apps/web lint
+pnpm --dir apps/web exec tsc --noEmit
+pnpm --dir apps/web build
+```
+
+## Database
+
+Schema files live in `apps/web/src/db/schema`.
+
+Useful commands:
+
+```bash
+pnpm --dir apps/web exec drizzle-kit generate
+```
+
+This repo already includes the generated SQL in `apps/web/drizzle/`. Apply it to Neon using your normal Postgres migration flow before running against a fresh database.
+
+## Vercel Deploy
+
+1. Create a Vercel project rooted at `apps/web` or link the monorepo and set the root directory to `apps/web`.
+2. Add all environment variables from the list above to the Vercel project.
+3. Ensure `DATABASE_URL` points at your production Neon database.
+4. Configure the Google OAuth app to allow the Vercel deployment URL as an authorized redirect origin/URL for NextAuth.
+5. Deploy with Vercel.
+
+With the Vercel CLI:
+
+```bash
+pnpm dlx vercel --cwd apps/web
+```
+
+Before promoting a production deploy, verify:
+
+- the owner can sign in with Google
+- `/api/chat` can reach Gemini
+- Neon reads and writes succeed for conversations, messages, memory, tokens, and audit logs
