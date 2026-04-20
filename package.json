@@ -1,0 +1,12 @@
+{
+  "name": "nomi",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm --dir apps/web dev",
+    "build": "pnpm --dir apps/web build",
+    "lint": "pnpm --dir apps/web lint",
+    "typecheck": "pnpm --dir apps/web exec tsc --noEmit",
+    "test": "pnpm --dir apps/web vitest run"
+  }
+}
