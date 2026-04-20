@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/auth";
 import { createChatService } from "@/server/chat/chat-service";
+import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
 import { generateAssistantReply } from "@/server/ai/model";
 
 const requestSchema = z.object({
@@ -10,9 +10,9 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await auth();
+  const requestAuth = await resolveRequestAuth(request);
 
-  if (!session?.user?.id) {
+  if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -30,10 +30,10 @@ export async function POST(request: Request) {
   });
 
   const result = await service.sendMessage({
-    ownerId: session.user.id,
+    ownerId: requestAuth.ownerId,
     conversationId: body.conversationId,
     content: body.content,
-    authMethod: "session"
+    authMethod: requestAuth.authMethod
   });
 
   return NextResponse.json(result);

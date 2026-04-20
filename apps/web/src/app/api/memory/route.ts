@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { auth } from "@/auth";
 import { db } from "@/db";
 import { auditLogs, memoryItems } from "@/db/schema/app";
+import { resolveRequestAuth } from "@/server/authz/resolve-request-auth";
 import { createMemoryService } from "@/server/memory/memory-service";
 
 const createMemorySchema = z.object({
@@ -63,23 +63,23 @@ function createMemoryRepository() {
   });
 }
 
-export async function GET() {
-  const session = await auth();
+export async function GET(request: Request) {
+  const requestAuth = await resolveRequestAuth(request);
 
-  if (!session?.user?.id) {
+  if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const service = createMemoryRepository();
-  const items = await service.list(session.user.id);
+  const items = await service.list(requestAuth.ownerId);
 
   return NextResponse.json(items);
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
+  const requestAuth = await resolveRequestAuth(request);
 
-  if (!session?.user?.id) {
+  if (!requestAuth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -100,10 +100,10 @@ export async function POST(request: Request) {
   const service = createMemoryRepository();
 
   const created = await service.create({
-    ownerId: session.user.id,
+    ownerId: requestAuth.ownerId,
     label: parsed.data.label,
     value: parsed.data.value,
-    authMethod: "session"
+    authMethod: requestAuth.authMethod
   });
 
   return NextResponse.json(created, { status: 201 });
