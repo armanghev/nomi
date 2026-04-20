@@ -47,22 +47,24 @@ function createHistoryRepository() {
       };
     },
     deleteConversation: async ({ ownerId, id }) => {
-      const [conversation] = await db
-        .select({
-          id: conversations.id
-        })
-        .from(conversations)
-        .where(and(eq(conversations.ownerId, ownerId), eq(conversations.id, id)))
-        .limit(1);
+      await db.transaction(async (tx) => {
+        const [conversation] = await tx
+          .select({
+            id: conversations.id
+          })
+          .from(conversations)
+          .where(and(eq(conversations.ownerId, ownerId), eq(conversations.id, id)))
+          .limit(1);
 
-      if (!conversation) {
-        return;
-      }
+        if (!conversation) {
+          return;
+        }
 
-      await db.delete(messages).where(eq(messages.conversationId, id));
-      await db
-        .delete(conversations)
-        .where(and(eq(conversations.ownerId, ownerId), eq(conversations.id, id)));
+        await tx.delete(messages).where(eq(messages.conversationId, id));
+        await tx
+          .delete(conversations)
+          .where(and(eq(conversations.ownerId, ownerId), eq(conversations.id, id)));
+      });
     }
   });
 }

@@ -2,28 +2,11 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { memoryItems } from "@/db/schema/app";
-import { writeAuditLog } from "@/server/audit/audit-log";
+import { auditLogs, memoryItems } from "@/db/schema/app";
 import { createMemoryService } from "@/server/memory/memory-service";
 
 function createMemoryRepository() {
   return createMemoryService({
-    insertMemory: async ({ ownerId, label, value }) => {
-      const [created] = await db
-        .insert(memoryItems)
-        .values({ ownerId, label, value })
-        .returning({
-          id: memoryItems.id,
-          label: memoryItems.label,
-          value: memoryItems.value
-        });
-
-      if (!created) {
-        throw new Error("Failed to create memory item");
-      }
-
-      return created;
-    },
     listMemory: async (ownerId) => {
       return db
         .select({
@@ -34,12 +17,42 @@ function createMemoryRepository() {
         .from(memoryItems)
         .where(and(eq(memoryItems.ownerId, ownerId), eq(memoryItems.isActive, true)));
     },
-    deleteMemory: async ({ ownerId, id }) => {
-      await db
-        .delete(memoryItems)
-        .where(and(eq(memoryItems.ownerId, ownerId), eq(memoryItems.id, id)));
-    },
-    writeAudit: writeAuditLog
+    transaction: async (callback) =>
+      db.transaction(async (tx) =>
+        callback({
+          insertMemory: async ({ ownerId, label, value }) => {
+            const [created] = await tx
+              .insert(memoryItems)
+              .values({ ownerId, label, value })
+              .returning({
+                id: memoryItems.id,
+                label: memoryItems.label,
+                value: memoryItems.value
+              });
+
+            if (!created) {
+              throw new Error("Failed to create memory item");
+            }
+
+            return created;
+          },
+          deleteMemory: async ({ ownerId, id }) => {
+            await tx
+              .delete(memoryItems)
+              .where(and(eq(memoryItems.ownerId, ownerId), eq(memoryItems.id, id)));
+          },
+          writeAudit: async (entry) => {
+            await tx.insert(auditLogs).values({
+              ownerId: entry.ownerId,
+              authMethod: entry.authMethod,
+              action: entry.action,
+              resourceType: entry.resourceType,
+              resourceId: entry.resourceId,
+              metadata: {}
+            });
+          }
+        })
+      )
   });
 }
 
