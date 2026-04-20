@@ -16,7 +16,4 @@ export function readEnv(source: Record<string, string | undefined>): AppEnv {
   return envSchema.parse(source);
 }
 
-export const env =
-  process.env.NODE_ENV === "test"
-    ? (process.env as unknown as AppEnv)
-    : readEnv(process.env);
+export const env = readEnv(process.env);
