@@ -2,6 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { BookTextIcon, LoaderCircleIcon } from "lucide-react";
 
 type MemoryItem = {
   id: string;
@@ -91,86 +94,90 @@ export function MemorySettingsPanel({
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-2xl font-semibold">Memory</h1>
-      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Save explicit context that Nomi can carry into future conversations.
-      </p>
+    <main className="space-y-5">
+      <header className="space-y-2">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          Settings
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">Memory</h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Save explicit context that Nomi can carry into future conversations.
+          Keep entries short and specific.
+        </p>
+      </header>
 
-      <section className="mt-6 rounded-3xl border border-border/80 bg-card/60 p-5 shadow-sm">
-        <div className="border-b border-border/70 pb-4">
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Create item
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
-            Add memory
-          </h2>
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+        <div className="rounded-2xl border border-border/75 bg-background/72 p-4">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium">
+            <BookTextIcon className="size-4 text-muted-foreground" />
+            Add memory item
+          </div>
+
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            <label className="block space-y-2">
+              <span className="text-sm">Label</span>
+              <Input
+                placeholder="Preferred response style"
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-sm">Value</span>
+              <Textarea
+                className="min-h-28"
+                placeholder="Prefer concise answers with direct recommendations."
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </label>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting || !label.trim() || !value.trim()}
+            >
+              {isSubmitting ? (
+                <>
+                  <LoaderCircleIcon className="size-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save memory"
+              )}
+            </Button>
+          </form>
         </div>
 
-        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium">Label</span>
-            <input
-              className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-              placeholder="Favorite tone"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              disabled={isSubmitting}
-            />
-          </label>
+        <div className="rounded-2xl border border-border/75 bg-background/72 p-4">
+          <div className="mb-4 text-sm font-medium">Active memory</div>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-medium">Value</span>
-            <textarea
-              className="min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-              placeholder="Prefer concise answers with direct recommendations."
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              disabled={isSubmitting}
-            />
-          </label>
+          {errorMessage ? (
+            <p
+              className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+              role="status"
+              aria-live="polite"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
 
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save memory"}
-          </Button>
-        </form>
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-border/80 bg-card/60 p-5 shadow-sm">
-        <div className="border-b border-border/70 pb-4">
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Current items
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
-            Active memory
-          </h2>
-        </div>
-
-        {errorMessage ? (
-          <p
-            className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-            role="status"
-            aria-live="polite"
-          >
-            {errorMessage}
-          </p>
-        ) : null}
-
-        <div className="mt-4 space-y-3">
-          {items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
-              No memory saved yet.
-            </div>
-          ) : (
-            items.map((item) => (
-              <article
-                key={item.id}
-                className="rounded-2xl border border-border/80 bg-background/80 px-4 py-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-sm font-semibold">{item.label}</h3>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+          <div className="space-y-2">
+            {items.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+                No memory saved yet.
+              </div>
+            ) : (
+              items.map((item) => (
+                <article
+                  key={item.id}
+                  className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-background/80 px-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-medium">{item.label}</h3>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                       {item.value}
                     </p>
                   </div>
@@ -181,12 +188,19 @@ export function MemorySettingsPanel({
                     disabled={deletingId === item.id}
                     onClick={() => handleDelete(item.id, item.label)}
                   >
-                    {deletingId === item.id ? "Deleting..." : "Delete"}
+                    {deletingId === item.id ? (
+                      <>
+                        <LoaderCircleIcon className="size-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete"
+                    )}
                   </Button>
-                </div>
-              </article>
-            ))
-          )}
+                </article>
+              ))
+            )}
+          </div>
         </div>
       </section>
     </main>

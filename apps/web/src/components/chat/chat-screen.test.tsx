@@ -3,11 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import { ChatScreen } from "./chat-screen";
 
 describe("ChatScreen", () => {
-  const conversations = [
-    { id: "conversation-1", title: "Trip planning" },
-    { id: "conversation-2", title: "Weekly review" },
-  ];
-
   it("submits a message from the composer", async () => {
     const onSend = vi.fn().mockResolvedValue(undefined);
 
@@ -16,6 +11,7 @@ describe("ChatScreen", () => {
         messages={[]}
         conversations={[]}
         activeConversationId={null}
+        activeConversationTitle={null}
         onSend={onSend}
         onSelectConversation={vi.fn()}
         onDeleteConversation={vi.fn()}
@@ -29,7 +25,7 @@ describe("ChatScreen", () => {
     fireEvent.change(screen.getByPlaceholderText("Ask Nomi anything"), {
       target: { value: "Summarize my day" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => {
       expect(onSend).toHaveBeenCalledWith("Summarize my day");
@@ -44,6 +40,7 @@ describe("ChatScreen", () => {
         messages={[]}
         conversations={[]}
         activeConversationId={null}
+        activeConversationTitle={null}
         onSend={onSend}
         onSelectConversation={vi.fn()}
         onDeleteConversation={vi.fn()}
@@ -57,23 +54,22 @@ describe("ChatScreen", () => {
     fireEvent.change(screen.getByPlaceholderText("Ask Nomi anything"), {
       target: { value: "   " },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => {
       expect(onSend).not.toHaveBeenCalled();
     });
   });
 
-  it("lets the owner reopen a saved conversation", async () => {
-    const onSelectConversation = vi.fn().mockResolvedValue(undefined);
-
+  it("renders a compact header with the active chat name", () => {
     render(
       <ChatScreen
         messages={[]}
-        conversations={conversations}
-        activeConversationId={null}
+        conversations={[]}
+        activeConversationId={"conversation-1"}
+        activeConversationTitle={"Trip planning"}
         onSend={vi.fn()}
-        onSelectConversation={onSelectConversation}
+        onSelectConversation={vi.fn()}
         onDeleteConversation={vi.fn()}
         onStartNewConversation={vi.fn()}
         isSending={false}
@@ -82,25 +78,24 @@ describe("ChatScreen", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Trip planning" }));
-
-    await waitFor(() => {
-      expect(onSelectConversation).toHaveBeenCalledWith("conversation-1");
-    });
+    expect(
+      screen.getByRole("heading", { name: "Trip planning" })
+    ).toBeVisible();
   });
 
-  it("confirms before deleting a saved conversation", async () => {
-    const onDeleteConversation = vi.fn().mockResolvedValue(undefined);
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-
+  it("shows chat bubbles with nomi on the left and the user on the right", () => {
     render(
       <ChatScreen
-        messages={[]}
-        conversations={conversations}
+        messages={[
+          { id: "assistant-1", role: "assistant", content: "Here is the plan." },
+          { id: "user-1", role: "user", content: "Refine that for me." },
+        ]}
+        conversations={[]}
         activeConversationId={"conversation-1"}
+        activeConversationTitle={"Trip planning"}
         onSend={vi.fn()}
         onSelectConversation={vi.fn()}
-        onDeleteConversation={onDeleteConversation}
+        onDeleteConversation={vi.fn()}
         onStartNewConversation={vi.fn()}
         isSending={false}
         isLoadingConversation={false}
@@ -108,17 +103,29 @@ describe("ChatScreen", () => {
       />
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Delete Trip planning" })
+    expect(screen.getByText("Here is the plan.")).toBeVisible();
+    expect(screen.getByText("Refine that for me.")).toBeVisible();
+    expect(screen.getByText("Nomi")).toBeVisible();
+    expect(screen.getByText("You")).toBeVisible();
+  });
+
+  it("shows an assistant starter bubble when the thread is empty", () => {
+    render(
+      <ChatScreen
+        messages={[]}
+        conversations={[]}
+        activeConversationId={null}
+        activeConversationTitle={null}
+        onSend={vi.fn()}
+        onSelectConversation={vi.fn()}
+        onDeleteConversation={vi.fn()}
+        onStartNewConversation={vi.fn()}
+        isSending={false}
+        isLoadingConversation={false}
+        isLoadingConversations={false}
+      />
     );
 
-    await waitFor(() => {
-      expect(confirmSpy).toHaveBeenCalledWith(
-        'Delete "Trip planning"? This cannot be undone.'
-      );
-      expect(onDeleteConversation).toHaveBeenCalledWith("conversation-1");
-    });
-
-    confirmSpy.mockRestore();
+    expect(screen.getByText("What do you want to work on?")).toBeVisible();
   });
 });

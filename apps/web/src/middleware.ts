@@ -3,6 +3,7 @@ import { auth } from "@/auth.config";
 
 export default auth((request) => {
   const isProtected =
+    request.nextUrl.pathname.startsWith("/station") ||
     request.nextUrl.pathname.startsWith("/chat") ||
     request.nextUrl.pathname.startsWith("/settings");
 
@@ -14,5 +15,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/chat/:path*", "/settings/:path*"],
+  matcher: ["/station/:path*", "/chat/:path*", "/settings/:path*"],
 };

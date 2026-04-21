@@ -1,23 +1,33 @@
 import { signIn } from "@/auth";
+import { SignInScreen } from "@/components/auth/sign-in-screen";
+import { isMagicLinkConfigured } from "@/server/auth/auth-provider-config";
 
 export default function SignInPage() {
+  const magicLinkEnabled = isMagicLinkConfigured({
+    emailServer: process.env.EMAIL_SERVER,
+    emailFrom: process.env.EMAIL_FROM,
+  });
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <form
-        action={async () => {
-          "use server";
-          await signIn("google", { redirectTo: "/chat" });
-        }}
-        className="w-full max-w-sm rounded-2xl border p-8 shadow-sm"
-      >
-        <h1 className="text-2xl font-semibold">Nomi</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Sign in with the allowlisted Google account.
-        </p>
-        <button className="mt-6 w-full rounded-md bg-foreground px-4 py-2 text-background">
-          Continue with Google
-        </button>
-      </form>
-    </main>
+    <SignInScreen
+      isMagicLinkEnabled={magicLinkEnabled}
+      onEmailSignIn={async (formData) => {
+        "use server";
+
+        const email = formData.get("email");
+        if (typeof email !== "string" || !email.trim()) {
+          return;
+        }
+
+        await signIn("nodemailer", {
+          email: email.trim(),
+          redirectTo: "/station/dashboard",
+        });
+      }}
+      onGoogleSignIn={async () => {
+        "use server";
+        await signIn("google", { redirectTo: "/station/dashboard" });
+      }}
+    />
   );
 }

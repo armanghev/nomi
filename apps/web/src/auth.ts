@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { authConfig } from "@/auth.config";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema/auth";
+import { buildNodeAuthProviders } from "@/server/auth/node-auth-provider-config";
 
 const authSchema = {
   usersTable: users,
@@ -26,5 +27,11 @@ const adapter = database
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  providers: buildNodeAuthProviders({
+    googleClientId: process.env.AUTH_GOOGLE_ID ?? "",
+    googleClientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
+    emailServer: process.env.EMAIL_SERVER,
+    emailFrom: process.env.EMAIL_FROM,
+  }),
   adapter,
 });

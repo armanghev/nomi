@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { LoaderCircleIcon, ShieldCheckIcon } from "lucide-react";
 
 type ApiToken = {
   id: string;
@@ -116,104 +118,91 @@ export function TokenSettingsPanel({
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-2xl font-semibold">API Tokens</h1>
-      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Create personal tokens for future iOS, macOS, and iMessage clients.
-      </p>
+    <main className="space-y-5">
+      <header className="space-y-2">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          Settings
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">API Tokens</h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Create personal tokens for clients and background jobs. Tokens are shown
+          once and can be revoked immediately.
+        </p>
+      </header>
 
-      <section className="mt-6 rounded-3xl border border-border/80 bg-card/60 p-5 shadow-sm">
-        <div className="border-b border-border/70 pb-4">
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <div className="rounded-2xl border border-border/75 bg-background/72 p-4">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium">
+            <ShieldCheckIcon className="size-4 text-muted-foreground" />
             Create token
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
-            Personal access
-          </h2>
-        </div>
-
-        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium">Label</span>
-            <input
-              className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-              placeholder="MacBook dev client"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              disabled={isSubmitting}
-            />
-          </label>
-
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create token"}
-          </Button>
-        </form>
-
-        {createdToken ? (
-          <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold">
-                  Token created for {createdToken.label}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Copy it now. This plaintext value will not be shown again.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCreatedToken(null)}
-              >
-                Dismiss
-              </Button>
-            </div>
-            <code className="mt-3 block overflow-x-auto rounded-xl border border-border/70 bg-background px-3 py-3 text-sm">
-              {createdToken.plaintextToken}
-            </code>
           </div>
-        ) : null}
-      </section>
 
-      <section className="mt-6 rounded-3xl border border-border/80 bg-card/60 p-5 shadow-sm">
-        <div className="border-b border-border/70 pb-4">
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Current tokens
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
-            Active credentials
-          </h2>
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            <label className="block space-y-2">
+              <span className="text-sm">Label</span>
+              <Input
+                placeholder="MacBook dev client"
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+                disabled={isSubmitting}
+              />
+            </label>
+
+            <Button type="submit" disabled={isSubmitting || !label.trim()}>
+              {isSubmitting ? (
+                <>
+                  <LoaderCircleIcon className="size-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create token"
+              )}
+            </Button>
+          </form>
+
+          {createdToken ? (
+            <div className="mt-4 rounded-xl border border-foreground/15 bg-foreground/5 p-3">
+              <p className="text-sm font-medium">Token created for {createdToken.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Copy it now. This value will not be shown again.
+              </p>
+              <code className="mt-3 block overflow-x-auto rounded-lg border border-border/70 bg-background px-3 py-2 text-xs">
+                {createdToken.plaintextToken}
+              </code>
+            </div>
+          ) : null}
         </div>
 
-        {errorMessage ? (
-          <p
-            className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-            role="status"
-            aria-live="polite"
-          >
-            {errorMessage}
-          </p>
-        ) : null}
+        <div className="rounded-2xl border border-border/75 bg-background/72 p-4">
+          <div className="mb-4 text-sm font-medium">Active credentials</div>
 
-        <div className="mt-4 space-y-3">
-          {tokens.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
-              No active tokens yet.
-            </div>
-          ) : (
-            tokens.map((token) => (
-              <article
-                key={token.id}
-                className="rounded-2xl border border-border/80 bg-background/80 px-4 py-4"
-              >
-                <div className="flex items-start justify-between gap-4">
+          {errorMessage ? (
+            <p
+              className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+              role="status"
+              aria-live="polite"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
+
+          <div className="space-y-2">
+            {tokens.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+                No active tokens yet.
+              </div>
+            ) : (
+              tokens.map((token) => (
+                <article
+                  key={token.id}
+                  className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-background/80 px-3 py-3"
+                >
                   <div>
-                    <h3 className="text-sm font-semibold">{token.label}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <h3 className="text-sm font-medium">{token.label}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Created {dateFormatter.format(new Date(token.createdAt))}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {token.lastUsedAt
                         ? `Last used ${dateFormatter.format(
                             new Date(token.lastUsedAt)
@@ -228,12 +217,19 @@ export function TokenSettingsPanel({
                     disabled={revokingId === token.id}
                     onClick={() => handleRevoke(token.id, token.label)}
                   >
-                    {revokingId === token.id ? "Revoking..." : "Revoke"}
+                    {revokingId === token.id ? (
+                      <>
+                        <LoaderCircleIcon className="size-4 animate-spin" />
+                        Revoking...
+                      </>
+                    ) : (
+                      "Revoke"
+                    )}
                   </Button>
-                </div>
-              </article>
-            ))
-          )}
+                </article>
+              ))
+            )}
+          </div>
         </div>
       </section>
     </main>
