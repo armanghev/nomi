@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Ai04Composer from "@/components/ai-04";
 import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar";
 import { ChatShell } from "@/components/chat/chat-shell";
 import { ToolCallRow } from "@/components/ops/tool-call-row";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
 import type {
@@ -13,6 +14,7 @@ import type {
   ConversationMessage,
 } from "@/features/mock-domain/types";
 import { cn } from "@/lib/utils";
+import { Copy, CopyCheck, Pencil } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -34,6 +36,8 @@ type RenderGroup =
       messages: ConversationMessage[];
     };
 
+type UserRenderMessage = Extract<RenderGroup, { kind: "user" }>["message"];
+
 export function ChatWorkspacePageRoot({
   conversationId = null,
 }: ChatWorkspacePageRootProps) {
@@ -44,6 +48,10 @@ export function ChatWorkspacePageRoot({
     ? state.conversations.find((conversation) => conversation.id === conversationId) ??
       null
     : null;
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const copiedResetTimeoutRef = useRef<number | null>(null);
 
   const getAttachmentExtension = (attachment: ConversationAttachment) => {
     if (attachment.fileExtension) {
@@ -81,6 +89,70 @@ export function ChatWorkspacePageRoot({
       router.push(`/chat/${nextConversationId}`);
     }
   }
+
+  function handleCopyUserMessage(messageId: string, content: string) {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(content);
+    }
+
+    if (copiedResetTimeoutRef.current !== null) {
+      window.clearTimeout(copiedResetTimeoutRef.current);
+    }
+
+    setCopiedMessageId(messageId);
+    copiedResetTimeoutRef.current = window.setTimeout(() => {
+      setCopiedMessageId(null);
+      copiedResetTimeoutRef.current = null;
+    }, 1_000);
+  }
+
+  function handleStartEditMessage(message: UserRenderMessage) {
+    setEditingMessageId(message.id);
+    setEditingContent(message.content);
+  }
+
+  function handleCancelEdit() {
+    setEditingMessageId(null);
+    setEditingContent("");
+  }
+
+  function handleSaveEditedMessage(message: UserRenderMessage) {
+    if (!activeConversation) {
+      return;
+    }
+
+    const nextConversationId = actions.editConversationMessage(
+      activeConversation.id,
+      message.id,
+      editingContent.trim(),
+      message.attachments
+    );
+
+    handleCancelEdit();
+    if (nextConversationId && conversationId !== nextConversationId) {
+      router.push(`/chat/${nextConversationId}`);
+    }
+  }
+
+  useEffect(() => {
+    setEditingMessageId(null);
+    setEditingContent("");
+    setCopiedMessageId(null);
+
+    if (copiedResetTimeoutRef.current !== null) {
+      window.clearTimeout(copiedResetTimeoutRef.current);
+      copiedResetTimeoutRef.current = null;
+    }
+  }, [activeConversation?.id]);
+
+  useEffect(
+    () => () => {
+      if (copiedResetTimeoutRef.current !== null) {
+        window.clearTimeout(copiedResetTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   const activeMessages = activeConversation?.messages ?? [];
   const hasMessages = activeMessages.length > 0;
@@ -137,6 +209,7 @@ export function ChatWorkspacePageRoot({
             {hasMessages ? (
               messageGroups.map((group, groupIndex) => {
                 if (group.kind === "user") {
+                  const isEditing = editingMessageId === group.message.id;
                   return (
                     <div key={group.message.id} className="flex w-full justify-end">
                       <div className="flex max-w-[80%] flex-col items-end">
@@ -169,11 +242,71 @@ export function ChatWorkspacePageRoot({
                             ))}
                           </div>
                         ) : null}
-                        {group.message.content ? (
+                        {isEditing ? (
+                          <div className="w-full rounded border border-primary/50 bg-primary/80 p-2 text-primary-foreground">
+                            <Textarea
+                              aria-label="Edit user message"
+                              value={editingContent}
+                              onChange={(event) => setEditingContent(event.target.value)}
+                              className="min-h-24 resize-y border-primary-foreground/35 bg-primary-foreground/7 text-sm text-primary-foreground placeholder:text-primary-foreground/70"
+                            />
+                            <div className="mt-2 flex justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                aria-label="Cancel edit"
+                                onClick={handleCancelEdit}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                aria-label="Save edit"
+                                onClick={() => handleSaveEditedMessage(group.message)}
+                                disabled={editingContent.trim().length === 0}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : group.message.content ? (
                           <div className="rounded border-primary/50 bg-primary/80 px-3 py-2 text-primary-foreground">
                             <p className="whitespace-pre-wrap text-sm">
                               {group.message.content}
                             </p>
+                          </div>
+                        ) : null}
+                        {!isEditing ? (
+                          <div className="mt-1 flex items-center justify-end gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              aria-label="Copy message"
+                              onClick={() =>
+                                handleCopyUserMessage(
+                                  group.message.id,
+                                  group.message.content
+                                )
+                              }
+                            >
+                              {copiedMessageId === group.message.id ? (
+                                <CopyCheck className="size-4" />
+                              ) : (
+                                <Copy className="size-4" />
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              aria-label="Edit message"
+                              onClick={() => handleStartEditMessage(group.message)}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
                           </div>
                         ) : null}
                       </div>

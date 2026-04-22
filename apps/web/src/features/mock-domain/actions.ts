@@ -22,9 +22,23 @@ const TOOL_PREFACE_DELAY_MS = 80;
 const TOOL_FIRST_START_DELAY_MS = 900;
 const TOOL_START_STAGGER_MS = 760;
 const TOOL_FINAL_RESPONSE_DELAY_MS = 220;
+const conversationExecutionVersions = new Map<string, number>();
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function bumpConversationExecutionVersion(conversationId: string) {
+  const nextVersion = (conversationExecutionVersions.get(conversationId) ?? 0) + 1;
+  conversationExecutionVersions.set(conversationId, nextVersion);
+  return nextVersion;
+}
+
+function isConversationExecutionCurrent(
+  conversationId: string,
+  expectedVersion: number
+) {
+  return conversationExecutionVersions.get(conversationId) === expectedVersion;
 }
 
 function bytesToUuid(bytes: Uint8Array) {
@@ -357,6 +371,7 @@ function streamAssistantMessage(args: {
   store: MockDomainStore;
   conversationId: string;
   content: string;
+  executionVersion: number;
   startDelayMs?: number;
   streamIntervalMs?: number;
 }) {
@@ -366,6 +381,12 @@ function streamAssistantMessage(args: {
   const streamIntervalMs = args.streamIntervalMs ?? ASSISTANT_STREAM_INTERVAL_MS;
 
   setTimeout(() => {
+    if (
+      !isConversationExecutionCurrent(args.conversationId, args.executionVersion)
+    ) {
+      return;
+    }
+
     appendMessageToConversation(args.store, args.conversationId, {
       id: messageId,
       role: "assistant",
@@ -376,6 +397,12 @@ function streamAssistantMessage(args: {
     let nextContent = "";
     tokens.forEach((token, index) => {
       setTimeout(() => {
+        if (
+          !isConversationExecutionCurrent(args.conversationId, args.executionVersion)
+        ) {
+          return;
+        }
+
         nextContent += token;
         updateConversationMessageContent({
           store: args.store,
@@ -442,10 +469,17 @@ function finalizeToolMessage(args: {
 function simulateToolExecution(args: {
   store: MockDomainStore;
   conversationId: string;
+  executionVersion: number;
   plan: ToolExecutionPlan[];
 }) {
   args.plan.forEach((execution) => {
     setTimeout(() => {
+      if (
+        !isConversationExecutionCurrent(args.conversationId, args.executionVersion)
+      ) {
+        return;
+      }
+
       appendMessageToConversation(args.store, args.conversationId, {
         id: execution.messageId,
         role: "tool",
@@ -456,6 +490,12 @@ function simulateToolExecution(args: {
     }, execution.startDelayMs);
 
     setTimeout(() => {
+      if (
+        !isConversationExecutionCurrent(args.conversationId, args.executionVersion)
+      ) {
+        return;
+      }
+
       const finalizedToolCall: ToolCall = {
         ...execution.toolCall,
         status: execution.finalStatus,
@@ -477,6 +517,10 @@ function simulateToolExecution(args: {
   );
 
   setTimeout(() => {
+    if (!isConversationExecutionCurrent(args.conversationId, args.executionVersion)) {
+      return;
+    }
+
     const completedToolCalls = args.plan.map((execution) => ({
       ...execution.toolCall,
       status: execution.finalStatus,
@@ -486,6 +530,7 @@ function simulateToolExecution(args: {
       store: args.store,
       conversationId: args.conversationId,
       content: createToolSummaryResponse(completedToolCalls),
+      executionVersion: args.executionVersion,
       startDelayMs: TOOL_FINAL_RESPONSE_DELAY_MS,
     });
   }, lastFinishDelay);
@@ -1036,6 +1081,7 @@ export function createMockDomainActions(store: MockDomainStore) {
       };
 
       const nextConversationId = conversationId ?? createUuid();
+      const executionVersion = bumpConversationExecutionVersion(nextConversationId);
 
       store.setState((current) => {
         const exists = current.conversations.some(
@@ -1081,12 +1127,14 @@ export function createMockDomainActions(store: MockDomainStore) {
           store,
           conversationId: nextConversationId,
           content: createToolPreface(executionPlan),
+          executionVersion,
           startDelayMs: TOOL_PREFACE_DELAY_MS,
         });
 
         simulateToolExecution({
           store,
           conversationId: nextConversationId,
+          executionVersion,
           plan: executionPlan,
         });
       } else {
@@ -1094,11 +1142,103 @@ export function createMockDomainActions(store: MockDomainStore) {
           store,
           conversationId: nextConversationId,
           content: createDefaultAssistantReply(normalizedContent),
+          executionVersion,
           startDelayMs: TOOL_PREFACE_DELAY_MS,
         });
       }
 
       return nextConversationId;
+    },
+
+    editConversationMessage(
+      conversationId: string,
+      messageId: string,
+      content: string,
+      attachments?: ConversationAttachment[]
+    ) {
+      const currentState = store.getState();
+      const conversation = currentState.conversations.find(
+        (item) => item.id === conversationId
+      );
+
+      if (!conversation) {
+        return null;
+      }
+
+      const messageIndex = conversation.messages.findIndex(
+        (message) => message.id === messageId && message.role === "user"
+      );
+
+      if (messageIndex < 0) {
+        return null;
+      }
+
+      const timestamp = nowIso();
+      const normalizedContent = content.trim();
+      const existingMessage = conversation.messages[messageIndex];
+      const nextAttachments = attachments ?? existingMessage?.attachments ?? [];
+      const nextTitle = normalizedContent
+        ? normalizedContent.slice(0, 48)
+        : nextAttachments[0]?.name ?? conversation.title;
+      const matchedConnections = resolveMentionedConnections(
+        normalizedContent,
+        currentState.connections
+      );
+      const executionPlan = buildToolExecutionPlan({
+        connections: matchedConnections,
+        initialTimestamp: timestamp,
+      });
+      const executionVersion = bumpConversationExecutionVersion(conversationId);
+
+      store.setState((current) => ({
+        ...current,
+        conversations: current.conversations.map((item) => {
+          if (item.id !== conversationId) {
+            return item;
+          }
+
+          const baseMessages = item.messages.slice(0, messageIndex);
+          const editedMessage: ConversationMessage = {
+            ...(item.messages[messageIndex] as ConversationMessage),
+            content: normalizedContent,
+            attachments: nextAttachments.length > 0 ? nextAttachments : undefined,
+          };
+
+          return {
+            ...item,
+            title: item.title.trim().length > 0 ? item.title : nextTitle,
+            updatedAt: timestamp,
+            messages: [...baseMessages, editedMessage],
+          };
+        }),
+      }));
+
+      if (executionPlan.length > 0) {
+        streamAssistantMessage({
+          store,
+          conversationId,
+          content: createToolPreface(executionPlan),
+          executionVersion,
+          startDelayMs: TOOL_PREFACE_DELAY_MS,
+        });
+
+        simulateToolExecution({
+          store,
+          conversationId,
+          executionVersion,
+          plan: executionPlan,
+        });
+      } else {
+        streamAssistantMessage({
+          store,
+          conversationId,
+          content: createDefaultAssistantReply(normalizedContent),
+          executionVersion,
+          startDelayMs: TOOL_PREFACE_DELAY_MS,
+        });
+      }
+
+      return conversationId;
     },
 
     setConnectionStatus(connectionId: string, status: ConnectionStatus) {

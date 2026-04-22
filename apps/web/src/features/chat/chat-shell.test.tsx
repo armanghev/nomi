@@ -15,8 +15,17 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("chat workspace page root", () => {
+  const clipboardWriteTextMock = vi.fn();
+
   beforeEach(() => {
     pushMock.mockReset();
+    clipboardWriteTextMock.mockReset();
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: clipboardWriteTextMock,
+      },
+    });
     vi.useFakeTimers();
   });
 
@@ -99,5 +108,53 @@ describe("chat workspace page root", () => {
     expect(document.querySelector('[data-slot="tool-call-row"][data-status="failed"]')).toBeTruthy();
     expect(screen.getByText("Tool execution finished", { exact: false })).toBeVisible();
     expect(screen.getByText("expired OAuth token", { exact: false })).toBeVisible();
+  });
+
+  it("adds copy and edit controls to user messages and rewinds history after edit", () => {
+    const seeded = createSeededMockDomainState(29);
+    const activeConversationId = seeded.conversations[0].id;
+    const initialUserContent =
+      seeded.conversations[0].messages.find((message) => message.role === "user")
+        ?.content ?? "";
+    getMockDomainStore().reset(seeded);
+
+    render(<ChatWorkspacePageRoot conversationId={activeConversationId} />);
+
+    const copyButton = screen.getByRole("button", { name: "Copy message" });
+    expect(copyButton.querySelector(".lucide-copy")).toBeTruthy();
+
+    fireEvent.click(copyButton);
+    expect(clipboardWriteTextMock).toHaveBeenCalledWith(initialUserContent);
+    expect(copyButton.querySelector(".lucide-copy-check")).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    expect(screen.getByRole("button", { name: "Copy message" }).querySelector(".lucide-copy")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit message" }));
+
+    const editInput = screen.getByLabelText("Edit user message");
+    fireEvent.change(editInput, {
+      target: { value: "Share token status and next steps." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save edit" }));
+
+    let conversation = getMockDomainStore()
+      .getState()
+      .conversations.find((item) => item.id === activeConversationId);
+    expect(conversation?.messages).toHaveLength(1);
+    expect(conversation?.messages[0]?.content).toBe("Share token status and next steps.");
+
+    act(() => {
+      vi.advanceTimersByTime(2_500);
+    });
+
+    conversation = getMockDomainStore()
+      .getState()
+      .conversations.find((item) => item.id === activeConversationId);
+    expect(conversation?.messages.at(-1)?.role).toBe("assistant");
+    expect((conversation?.messages.at(-1)?.content ?? "").length).toBeGreaterThan(0);
   });
 });

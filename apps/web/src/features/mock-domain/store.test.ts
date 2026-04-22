@@ -147,4 +147,41 @@ describe("mock domain store", () => {
       },
     ]);
   });
+
+  it("rewinds a conversation to an edited user message and regenerates assistant output", () => {
+    const state = createSeededMockDomainState(23);
+    const store = createMockDomainStore(state);
+    const actions = createMockDomainActions(store);
+    const conversation = store.getState().conversations[0];
+
+    expect(conversation).toBeDefined();
+
+    const userMessage = conversation?.messages.find((message) => message.role === "user");
+    expect(userMessage).toBeDefined();
+
+    actions.editConversationMessage(
+      conversation?.id as string,
+      userMessage?.id as string,
+      "Share token status and next steps."
+    );
+
+    let next = store.getState();
+    let nextConversation = next.conversations.find(
+      (item) => item.id === conversation?.id
+    );
+
+    expect(nextConversation?.messages).toHaveLength(1);
+    expect(nextConversation?.messages[0]?.content).toBe(
+      "Share token status and next steps."
+    );
+
+    vi.advanceTimersByTime(2_500);
+
+    next = store.getState();
+    nextConversation = next.conversations.find((item) => item.id === conversation?.id);
+    const lastMessage = nextConversation?.messages.at(-1);
+
+    expect(lastMessage?.role).toBe("assistant");
+    expect((lastMessage?.content ?? "").length).toBeGreaterThan(0);
+  });
 });
