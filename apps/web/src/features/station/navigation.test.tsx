@@ -36,5 +36,10 @@ describe("station and chat shells", () => {
     });
 
     expect(backLink).toHaveAttribute("href", "/station/dashboard");
+    expect(screen.getByText("Today")).toBeVisible();
+    expect(screen.getByText("Yesterday")).toBeVisible();
+    expect(screen.getByText("Last 7 Days")).toBeVisible();
+    expect(screen.getByText("Last Month")).toBeVisible();
+    expect(screen.getByText("All Time")).toBeVisible();
   });
 });
