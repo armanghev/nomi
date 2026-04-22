@@ -201,5 +201,6 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
     conversations,
     sources,
     modelRuns,
+    inspectorSelection: { kind: "dashboard-metric", id: "criticalEvents" },
   };
 }

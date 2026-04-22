@@ -1,9 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
+import { cn } from "@/lib/utils";
 
 export function TokensPageRoot() {
-  const tokens = useMockDomainStore((state) => state.tokens);
+  const state = useMockDomainStore((snapshot) => snapshot);
+  const actions = useMemo(() => getMockDomainActions(), []);
+  const selectedId = state.inspectorSelection?.kind === "token" ? state.inspectorSelection.id : null;
 
   return (
     <section className="space-y-4">
@@ -13,16 +18,23 @@ export function TokensPageRoot() {
       </header>
 
       <div className="space-y-2">
-        {tokens.map((token) => (
-          <article
+        {state.tokens.map((token) => (
+          <button
             key={token.id}
-            className="rounded-xl border border-border/75 bg-background/80 px-4 py-3"
+            type="button"
+            onClick={() => actions.selectInspector({ kind: "token", id: token.id })}
+            className={cn(
+              "w-full rounded-xl border border-border/75 bg-background/80 px-4 py-3 text-left transition-colors",
+              selectedId === token.id
+                ? "border-primary/60 bg-primary/10"
+                : "hover:bg-muted/40"
+            )}
           >
             <p className="text-sm font-medium">{token.label}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Status: {token.status} · Daily cost: ${token.dailyCostUsd}
             </p>
-          </article>
+          </button>
         ))}
       </div>
     </section>

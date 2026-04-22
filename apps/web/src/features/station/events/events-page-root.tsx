@@ -1,9 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
+import { cn } from "@/lib/utils";
 
 export function EventsPageRoot() {
-  const events = useMockDomainStore((state) => state.events);
+  const state = useMockDomainStore((snapshot) => snapshot);
+  const actions = useMemo(() => getMockDomainActions(), []);
+  const selectedId = state.inspectorSelection?.kind === "event" ? state.inspectorSelection.id : null;
 
   return (
     <section className="space-y-4">
@@ -13,16 +18,23 @@ export function EventsPageRoot() {
       </header>
 
       <div className="space-y-2">
-        {events.map((event) => (
-          <article
+        {state.events.map((event) => (
+          <button
             key={event.id}
-            className="rounded-xl border border-border/75 bg-background/80 px-4 py-3"
+            type="button"
+            onClick={() => actions.selectInspector({ kind: "event", id: event.id })}
+            className={cn(
+              "w-full rounded-xl border border-border/75 bg-background/80 px-4 py-3 text-left transition-colors",
+              selectedId === event.id
+                ? "border-primary/60 bg-primary/10"
+                : "hover:bg-muted/40"
+            )}
           >
             <p className="text-sm font-medium">{event.message}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {event.type} · {event.status} · {event.severity}
             </p>
-          </article>
+          </button>
         ))}
       </div>
     </section>

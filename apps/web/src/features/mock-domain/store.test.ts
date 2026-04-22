@@ -42,4 +42,20 @@ describe("mock domain store", () => {
     expect(next.events[0]?.type).toBe("memory.update");
     expect(next.events[0]?.status).toBe("success");
   });
+
+  it("updates inspector selection when an item is selected", () => {
+    const state = createSeededMockDomainState(11);
+    const store = createMockDomainStore(state);
+    const actions = createMockDomainActions(store);
+    const agentId = store.getState().agents[0]?.id;
+
+    expect(agentId).toBeDefined();
+
+    actions.selectInspector({ kind: "agent", id: agentId as string });
+
+    expect(store.getState().inspectorSelection).toEqual({
+      kind: "agent",
+      id: agentId,
+    });
+  });
 });

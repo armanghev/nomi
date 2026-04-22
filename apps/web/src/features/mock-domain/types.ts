@@ -15,6 +15,12 @@ export type ConnectionStatus =
   | "failed";
 
 export type TokenStatus = "active" | "paused" | "revoked";
+export type DashboardMetricId =
+  | "criticalEvents"
+  | "activeAgents"
+  | "pausedTokens"
+  | "avgLatencyMs"
+  | "dailyCostUsd";
 
 export type EventType =
   | "token.pause"
@@ -107,6 +113,15 @@ export type MockDomainState = {
   conversations: Conversation[];
   sources: Source[];
   modelRuns: ModelRun[];
+  inspectorSelection: InspectorSelection | null;
 };
 
 export type MemoryUpdate = Partial<Pick<MemoryItem, "label" | "value">>;
+
+export type InspectorSelection =
+  | { kind: "dashboard-metric"; id: DashboardMetricId }
+  | { kind: "agent"; id: string }
+  | { kind: "memory"; id: string }
+  | { kind: "connection"; id: string }
+  | { kind: "token"; id: string }
+  | { kind: "event"; id: string };

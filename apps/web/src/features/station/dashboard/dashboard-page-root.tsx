@@ -1,12 +1,53 @@
 "use client";
 
 import { useMemo } from "react";
-import { useMockDomainStore } from "@/features/mock-domain/store";
+import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { selectDashboardSummary } from "@/features/mock-domain/selectors";
+import { useMockDomainStore } from "@/features/mock-domain/store";
+import type { DashboardMetricId } from "@/features/mock-domain/types";
+import { cn } from "@/lib/utils";
+
+const metricDefinitions: {
+  id: DashboardMetricId;
+  label: string;
+  format: (value: ReturnType<typeof selectDashboardSummary>) => string;
+}[] = [
+  {
+    id: "criticalEvents",
+    label: "Critical events",
+    format: (value) => String(value.criticalEvents),
+  },
+  {
+    id: "activeAgents",
+    label: "Active agents",
+    format: (value) => String(value.activeAgents),
+  },
+  {
+    id: "pausedTokens",
+    label: "Paused tokens",
+    format: (value) => String(value.pausedTokens),
+  },
+  {
+    id: "avgLatencyMs",
+    label: "Avg latency",
+    format: (value) => `${value.avgLatencyMs}ms`,
+  },
+  {
+    id: "dailyCostUsd",
+    label: "Daily token cost",
+    format: (value) => `$${value.dailyCostUsd}`,
+  },
+];
 
 export function DashboardPageRoot() {
   const state = useMockDomainStore((snapshot) => snapshot);
   const summary = useMemo(() => selectDashboardSummary(state), [state]);
+  const selectedMetricId =
+    state.inspectorSelection?.kind === "dashboard-metric"
+      ? state.inspectorSelection.id
+      : null;
+
+  const actions = useMemo(() => getMockDomainActions(), []);
 
   return (
     <section className="space-y-4">
@@ -21,26 +62,26 @@ export function DashboardPageRoot() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <article className="rounded-xl border border-border/75 bg-background/80 p-4">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Critical events</p>
-          <p className="mt-2 text-2xl font-semibold">{summary.criticalEvents}</p>
-        </article>
-        <article className="rounded-xl border border-border/75 bg-background/80 p-4">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Active agents</p>
-          <p className="mt-2 text-2xl font-semibold">{summary.activeAgents}</p>
-        </article>
-        <article className="rounded-xl border border-border/75 bg-background/80 p-4">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Paused tokens</p>
-          <p className="mt-2 text-2xl font-semibold">{summary.pausedTokens}</p>
-        </article>
-        <article className="rounded-xl border border-border/75 bg-background/80 p-4">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Avg latency</p>
-          <p className="mt-2 text-2xl font-semibold">{summary.avgLatencyMs}ms</p>
-        </article>
-        <article className="rounded-xl border border-border/75 bg-background/80 p-4">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Daily token cost</p>
-          <p className="mt-2 text-2xl font-semibold">${summary.dailyCostUsd}</p>
-        </article>
+        {metricDefinitions.map((metric) => (
+          <button
+            key={metric.id}
+            type="button"
+            onClick={() =>
+              actions.selectInspector({ kind: "dashboard-metric", id: metric.id })
+            }
+            className={cn(
+              "rounded-xl border border-border/75 bg-background/80 p-4 text-left transition-colors",
+              selectedMetricId === metric.id
+                ? "border-primary/60 bg-primary/10"
+                : "hover:bg-muted/40"
+            )}
+          >
+            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              {metric.label}
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{metric.format(summary)}</p>
+          </button>
+        ))}
       </div>
     </section>
   );

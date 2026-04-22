@@ -1,10 +1,12 @@
 import { nanoid } from "nanoid";
+import { getMockDomainStore } from "./store";
 import type { MockDomainStore } from "./store";
 import type {
   DomainEvent,
   EventSeverity,
   EventStatus,
   EventType,
+  InspectorSelection,
   MemoryUpdate,
 } from "./types";
 
@@ -53,6 +55,13 @@ function emitEvent(store: MockDomainStore, event: DomainEvent) {
 
 export function createMockDomainActions(store: MockDomainStore) {
   return {
+    selectInspector(selection: InspectorSelection | null) {
+      store.setState((current) => ({
+        ...current,
+        inspectorSelection: selection,
+      }));
+    },
+
     pauseToken(tokenId: string) {
       const event = createEvent(
         "token.pause",
@@ -244,4 +253,14 @@ export function createMockDomainActions(store: MockDomainStore) {
       return event.id;
     },
   };
+}
+
+let singletonActions: ReturnType<typeof createMockDomainActions> | null = null;
+
+export function getMockDomainActions() {
+  if (!singletonActions) {
+    singletonActions = createMockDomainActions(getMockDomainStore());
+  }
+
+  return singletonActions;
 }

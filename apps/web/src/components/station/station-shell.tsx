@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/sidebar-01/app-sidebar";
 import { InspectorDrawer } from "@/components/station/inspector-drawer";
+import { StationInspector } from "@/components/station/station-inspector";
 import { StationTopbar } from "@/components/station/station-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -19,7 +20,7 @@ export function StationShell({ children, inspector }: StationShellProps) {
               <StationTopbar />
               <main className="p-4 lg:p-6">{children}</main>
             </div>
-            <InspectorDrawer>{inspector}</InspectorDrawer>
+            <InspectorDrawer>{inspector ?? <StationInspector />}</InspectorDrawer>
           </div>
         </SidebarInset>
       </div>

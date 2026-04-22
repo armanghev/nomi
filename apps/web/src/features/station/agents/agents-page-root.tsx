@@ -1,9 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
+import { cn } from "@/lib/utils";
 
 export function AgentsPageRoot() {
-  const agents = useMockDomainStore((state) => state.agents);
+  const state = useMockDomainStore((snapshot) => snapshot);
+  const actions = useMemo(() => getMockDomainActions(), []);
+  const selectedId = state.inspectorSelection?.kind === "agent" ? state.inspectorSelection.id : null;
 
   return (
     <section className="space-y-4">
@@ -13,16 +18,23 @@ export function AgentsPageRoot() {
       </header>
 
       <div className="space-y-2">
-        {agents.map((agent) => (
-          <article
+        {state.agents.map((agent) => (
+          <button
             key={agent.id}
-            className="rounded-xl border border-border/75 bg-background/80 px-4 py-3"
+            type="button"
+            onClick={() => actions.selectInspector({ kind: "agent", id: agent.id })}
+            className={cn(
+              "w-full rounded-xl border border-border/75 bg-background/80 px-4 py-3 text-left transition-colors",
+              selectedId === agent.id
+                ? "border-primary/60 bg-primary/10"
+                : "hover:bg-muted/40"
+            )}
           >
             <p className="text-sm font-medium">{agent.name}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Status: {agent.status} · Active runs: {agent.activeRuns} · Failure rate: {agent.failureRate}
             </p>
-          </article>
+          </button>
         ))}
       </div>
     </section>

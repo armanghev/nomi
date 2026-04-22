@@ -1,9 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
+import { cn } from "@/lib/utils";
 
 export function ConnectionsPageRoot() {
-  const connections = useMockDomainStore((state) => state.connections);
+  const state = useMockDomainStore((snapshot) => snapshot);
+  const actions = useMemo(() => getMockDomainActions(), []);
+  const selectedId = state.inspectorSelection?.kind === "connection" ? state.inspectorSelection.id : null;
 
   return (
     <section className="space-y-4">
@@ -16,17 +21,24 @@ export function ConnectionsPageRoot() {
       </header>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        {connections.map((connection) => (
-          <article
+        {state.connections.map((connection) => (
+          <button
             key={connection.id}
-            className="rounded-xl border border-border/75 bg-background/80 px-4 py-3"
+            type="button"
+            onClick={() => actions.selectInspector({ kind: "connection", id: connection.id })}
+            className={cn(
+              "rounded-xl border border-border/75 bg-background/80 px-4 py-3 text-left transition-colors",
+              selectedId === connection.id
+                ? "border-primary/60 bg-primary/10"
+                : "hover:bg-muted/40"
+            )}
           >
             <p className="text-sm font-medium capitalize">{connection.provider}</p>
             <p className="mt-1 text-xs text-muted-foreground">Status: {connection.status}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Scopes: {connection.scopes.join(", ")}
             </p>
-          </article>
+          </button>
         ))}
       </div>
     </section>
