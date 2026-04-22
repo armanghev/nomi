@@ -5,17 +5,18 @@ import { ChatHistorySidebar } from "./chat-history-sidebar";
 type ChatShellProps = {
   children: React.ReactNode;
   sidebar?: React.ReactNode;
+  title: String;
 };
 
-export function ChatShell({ children, sidebar }: ChatShellProps) {
+export function ChatShell({ children, sidebar, title }: ChatShellProps) {
   return (
     <SidebarProvider>
       <div className="relative flex min-h-screen w-full bg-background">
         {sidebar ?? <ChatHistorySidebar />}
         <SidebarInset className="flex min-w-0 flex-1 flex-col bg-background">
           <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-            <ChatTopbar />
-            <main className="flex min-h-0 flex-1 p-4 lg:p-6">{children}</main>
+            <ChatTopbar title={title} />
+            <main className="flex min-h-0 flex-1 p-2 mx-auto h-full w-full flex-col overflow-hidden">{children}</main>
           </div>
         </SidebarInset>
       </div>

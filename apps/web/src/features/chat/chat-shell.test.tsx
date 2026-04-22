@@ -5,20 +5,19 @@ import { createSeededMockDomainState } from "@/features/mock-domain/seed";
 import { getMockDomainStore } from "@/features/mock-domain/store";
 
 describe("chat workspace page root", () => {
-  it("renders grouped sources and can pin or unpin", () => {
+  it("renders chat-only workspace with composer", () => {
     const seeded = createSeededMockDomainState(2);
     getMockDomainStore().reset(seeded);
 
     render(<ChatWorkspacePageRoot />);
 
-    expect(screen.getByText("Conversation sources")).toBeVisible();
-    expect(
-      screen.getAllByRole("button", { name: /Pin source/i }).length
-    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Conversation sources")).not.toBeInTheDocument();
+    expect(screen.queryByText("Linked station events")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Send message")).toBeVisible();
+    expect(screen.getByText("You")).toBeVisible();
+    expect(screen.getByText("Nomi")).toBeVisible();
 
-    const toggle = screen.getAllByRole("button", { name: /Unpin source|Pin source/i })[0];
-    fireEvent.click(toggle);
-
-    expect(screen.getByText("Linked station events")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    expect(screen.getByText("Start a new conversation to begin chatting.")).toBeVisible();
   });
 });

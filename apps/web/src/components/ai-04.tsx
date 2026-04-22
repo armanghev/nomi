@@ -179,7 +179,7 @@ export default function Ai04({
             </div>
           )}
           <Textarea
-            className="max-h-50 min-h-12 resize-none rounded-none border-none bg-transparent! p-0 text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0"
+            className="max-h-50 min-h-12 resize-none rounded-none border-none bg-transparent! text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0 p-1"
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder="Ask anything"
@@ -197,14 +197,14 @@ export default function Ai04({
               />
 
               <DropdownMenu>
-                <DropdownMenuTrigger render={<Button className="ml-[-2px] rounded-md" size="icon-sm" type="button" variant="ghost" aria-label="Add attachments" />}><IconPlus size={16} /></DropdownMenuTrigger>
+                <DropdownMenuTrigger render={<Button className="ml-[-2px] rounded" size="icon-sm" type="button" variant="ghost" aria-label="Add attachments" />}><IconPlus size={16} /></DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="max-w-xs rounded-2xl p-1.5"
+                  className="max-w-xs rounded p-1.5"
                 >
                   <DropdownMenuGroup className="space-y-1">
                     <DropdownMenuItem
-                      className="rounded-md text-xs"
+                      className="rounded text-xs"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <div className="flex items-center gap-2">
@@ -212,19 +212,19 @@ export default function Ai04({
                         <span>Attach Files</span>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-md text-xs">
+                    <DropdownMenuItem className="rounded text-xs">
                       <div className="flex items-center gap-2">
                         <IconLink className="text-muted-foreground" size={16} />
                         <span>Import from URL</span>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-md text-xs">
+                    <DropdownMenuItem className="rounded text-xs">
                       <div className="flex items-center gap-2">
                         <IconClipboard className="text-muted-foreground" size={16} />
                         <span>Paste from Clipboard</span>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-md text-xs">
+                    <DropdownMenuItem className="rounded text-xs">
                       <div className="flex items-center gap-2">
                         <IconTemplate className="text-muted-foreground" size={16} />
                         <span>Use Template</span>
@@ -235,7 +235,7 @@ export default function Ai04({
               </DropdownMenu>
 
               <DropdownMenu>
-                <DropdownMenuTrigger render={<Button className="rounded-md" size="icon-sm" type="button" variant="ghost" aria-label="Adjust settings" />}><IconAdjustmentsHorizontal size={16} /></DropdownMenuTrigger>
+                <DropdownMenuTrigger render={<Button className="rounded" size="icon-sm" type="button" variant="ghost" aria-label="Adjust settings" />}><IconAdjustmentsHorizontal size={16} /></DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
                   className="w-48 rounded-2xl p-3"
@@ -289,7 +289,7 @@ export default function Ai04({
 
             <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
               <Button
-                className="rounded-md"
+                className="rounded"
                 disabled={!prompt.trim()}
                 size="icon-sm"
                 type="submit"

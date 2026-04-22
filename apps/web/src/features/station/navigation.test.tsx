@@ -26,7 +26,7 @@ describe("station and chat shells", () => {
 
   it("renders chat shell with chat sidebar and station topbar", () => {
     render(
-      <ChatShell>
+      <ChatShell title="Chat">
         <div>chat workspace</div>
       </ChatShell>
     );
@@ -37,7 +37,8 @@ describe("station and chat shells", () => {
     expect(screen.getByText("Yesterday")).toBeVisible();
     expect(screen.getByText("Last 7 Days")).toBeVisible();
     expect(screen.getByRole("button", { name: "Toggle theme" })).toBeVisible();
-    expect(screen.getByLabelText("Search station")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Chat" })).toBeVisible();
+    expect(screen.queryByLabelText("Search station")).not.toBeInTheDocument();
     expect(screen.getByText("chat workspace")).toBeVisible();
   });
 });
