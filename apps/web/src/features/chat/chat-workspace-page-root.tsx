@@ -109,7 +109,7 @@ export function ChatWorkspacePageRoot({
                   return (
                     <div key={group.message.id} className="flex w-full justify-end">
                       <div className="max-w-[80%] rounded border-primary/50 bg-primary/80 px-3 py-2 text-primary-foreground">
-                        <p className="mt-1 whitespace-pre-wrap text-sm">{group.message.content}</p>
+                        <p className="whitespace-pre-wrap text-sm">{group.message.content}</p>
                       </div>
                     </div>
                   );
