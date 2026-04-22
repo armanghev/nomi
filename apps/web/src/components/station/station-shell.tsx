@@ -9,12 +9,12 @@ type StationShellProps = {
 export function StationShell({ children }: StationShellProps) {
   return (
     <SidebarProvider>
-      <div className="relative flex min-h-screen w-full bg-background">
+      <div className="relative flex h-svh w-full overflow-hidden bg-background">
         <AppSidebar />
-        <SidebarInset className="flex min-w-0 flex-1 flex-col bg-background">
-          <div className="min-h-screen min-w-0">
+        <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <StationTopbar />
-            <main className="p-4 lg:p-6">{children}</main>
+            <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
           </div>
         </SidebarInset>
       </div>

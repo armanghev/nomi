@@ -11,12 +11,14 @@ type ChatShellProps = {
 export function ChatShell({ children, sidebar, title }: ChatShellProps) {
   return (
     <SidebarProvider>
-      <div className="relative flex min-h-screen w-full bg-background">
+      <div className="relative flex h-svh w-full overflow-hidden bg-background">
         {sidebar ?? <ChatHistorySidebar />}
-        <SidebarInset className="flex min-w-0 flex-1 flex-col bg-background">
-          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <ChatTopbar title={title} />
-            <main className="flex min-h-0 flex-1 p-2 mx-auto h-full w-full flex-col overflow-hidden">{children}</main>
+            <main className="mx-auto flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden p-2">
+              {children}
+            </main>
           </div>
         </SidebarInset>
       </div>

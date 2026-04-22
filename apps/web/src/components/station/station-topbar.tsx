@@ -43,7 +43,7 @@ export function StationTopbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
+    <header className="z-30 shrink-0 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="flex items-center gap-3 px-4 py-3 lg:px-6">
         <label className="relative block w-full max-w-sm">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
