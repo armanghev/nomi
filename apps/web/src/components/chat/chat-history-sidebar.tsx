@@ -179,7 +179,7 @@ export function ChatHistorySidebar({
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen border-r border-primary/25 bg-gradient-to-b from-primary/10 via-primary/5 to-sidebar/95 px-3 py-4 lg:flex lg:flex-col">
+      <aside className="sticky top-0 hidden h-screen border-r border-primary/25 bg-linear-to-b from-primary/10 via-primary/5 to-sidebar/95 px-3 py-4 lg:flex lg:flex-col">
         <div className="mb-4 flex items-center gap-2">
           <Link
             href="/station/dashboard"
