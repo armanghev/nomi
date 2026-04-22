@@ -42,12 +42,42 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       title: "Operator baseline",
       sourceIds: [buildId("source", seed, 1), buildId("source", seed, 2)],
       updatedAt: buildTimestamp(2),
+      messages: [
+        {
+          id: buildId("message", seed, 1),
+          role: "user",
+          content: "Give me the current system health summary.",
+          createdAt: buildTimestamp(5),
+        },
+        {
+          id: buildId("message", seed, 2),
+          role: "assistant",
+          content:
+            "Two active agents are healthy, one is degraded, and there is one unresolved critical event.",
+          createdAt: buildTimestamp(4),
+        },
+      ],
     },
     {
       id: buildId("conv", seed, 2),
       title: "Deploy checklist",
       sourceIds: [buildId("source", seed, 3)],
       updatedAt: buildTimestamp(18),
+      messages: [
+        {
+          id: buildId("message", seed, 3),
+          role: "user",
+          content: "What should I verify before the next deploy?",
+          createdAt: buildTimestamp(22),
+        },
+        {
+          id: buildId("message", seed, 4),
+          role: "assistant",
+          content:
+            "Confirm tokens are active, GitHub connection is healthy, and failures are acknowledged in Events.",
+          createdAt: buildTimestamp(21),
+        },
+      ],
     },
   ];
 
@@ -57,18 +87,21 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       label: "neon query log",
       pinned: true,
       conversationId: conversations[0].id,
+      group: "telemetry",
     },
     {
       id: buildId("source", seed, 2),
       label: "memory profile",
       pinned: false,
       conversationId: conversations[0].id,
+      group: "memories",
     },
     {
       id: buildId("source", seed, 3),
       label: "release notebook",
       pinned: true,
       conversationId: conversations[1].id,
+      group: "docs",
     },
   ];
 
@@ -79,6 +112,8 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "healthy",
       activeRuns: 2,
       failureRate: Number((rand() * 0.12).toFixed(2)),
+      lastRunAt: buildTimestamp(3),
+      lastRunStatus: "success",
     },
     {
       id: buildId("agent", seed, 2),
@@ -86,6 +121,8 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "running",
       activeRuns: 1,
       failureRate: Number((rand() * 0.1).toFixed(2)),
+      lastRunAt: buildTimestamp(6),
+      lastRunStatus: "success",
     },
     {
       id: buildId("agent", seed, 3),
@@ -93,6 +130,8 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "degraded",
       activeRuns: 3,
       failureRate: Number((0.12 + rand() * 0.1).toFixed(2)),
+      lastRunAt: buildTimestamp(8),
+      lastRunStatus: "failed",
     },
   ];
 
@@ -103,6 +142,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       value: "Keep responses concise and action-first.",
       updatedAt: buildTimestamp(9),
       sourceCount: 8,
+      provenance: "manual",
     },
     {
       id: buildId("memory", seed, 2),
@@ -110,6 +150,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       value: "Prefer Neon + Drizzle + Vercel AI SDK.",
       updatedAt: buildTimestamp(47),
       sourceCount: 3,
+      provenance: "imported",
     },
   ];
 
@@ -120,6 +161,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "connected",
       scopes: ["profile", "email", "classroom.readonly"],
       lastSyncAt: buildTimestamp(14),
+      healthScore: 98,
     },
     {
       id: buildId("connection", seed, 2),
@@ -127,6 +169,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "degraded",
       scopes: ["repo", "read:user"],
       lastSyncAt: buildTimestamp(31),
+      healthScore: 61,
     },
   ];
 
@@ -137,6 +180,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "active",
       lastUsedAt: buildTimestamp(4),
       dailyCostUsd: Number((0.4 + rand() * 0.8).toFixed(2)),
+      anomalyTags: [],
     },
     {
       id: buildId("token", seed, 2),
@@ -144,17 +188,23 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       status: "paused",
       lastUsedAt: buildTimestamp(95),
       dailyCostUsd: Number((0.2 + rand() * 0.4).toFixed(2)),
+      anomalyTags: ["idle > 24h"],
     },
   ];
 
-  const modelRuns: ModelRun[] = Array.from({ length: 6 }, (_, index) => ({
-    id: buildId("run", seed, index + 1),
-    conversationId: conversations[index % conversations.length].id,
-    latencyMs: Math.round(550 + rand() * 1400),
-    costUsd: Number((0.01 + rand() * 0.07).toFixed(3)),
-    status: rand() > 0.85 ? "failed" : "success",
-    createdAt: buildTimestamp(index * 6 + 3),
-  }));
+  const modelRuns: ModelRun[] = Array.from({ length: 6 }, (_, index) => {
+    const failed = rand() > 0.85;
+    return {
+      id: buildId("run", seed, index + 1),
+      agentId: agents[index % agents.length].id,
+      conversationId: conversations[index % conversations.length].id,
+      model: index % 2 === 0 ? "gpt-5.4" : "gpt-5.4-mini",
+      latencyMs: Math.round(550 + rand() * 1400),
+      costUsd: Number((0.01 + rand() * 0.07).toFixed(3)),
+      status: failed ? "failed" : "success",
+      createdAt: buildTimestamp(index * 6 + 3),
+    };
+  });
 
   const events: DomainEvent[] = [
     {

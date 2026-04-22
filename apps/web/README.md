@@ -98,3 +98,27 @@ Before promoting a production deploy, verify:
 - the owner can sign in with Google
 - `/api/chat` can reach Gemini
 - Neon reads and writes succeed for conversations, messages, memory, tokens, and audit logs
+
+## Station Mock Domain and Backend Handoff
+
+The rebuilt `/station/*` and `/chat` operator experience currently uses a shared in-memory store under:
+
+- `apps/web/src/features/mock-domain/types.ts`
+- `apps/web/src/features/mock-domain/seed.ts`
+- `apps/web/src/features/mock-domain/store.ts`
+- `apps/web/src/features/mock-domain/actions.ts`
+- `apps/web/src/features/mock-domain/selectors.ts`
+
+### Frontend assumptions
+
+- All route actions are event-first: emit timeline event, mutate entity state, resolve event status.
+- OAuth and token operations are deterministic mocks meant for operator workflow validation, not real provider or credential calls.
+- Chat workspace message exchange is simulated locally and updates shared state for cross-route visibility.
+- Source pin/unpin updates both chat context and station events timeline.
+
+### Backend handoff points
+
+- Replace mock action bodies in `features/mock-domain/actions.ts` with API-backed mutations while preserving event-first sequencing semantics.
+- Replace seeded bootstrapping in `features/mock-domain/seed.ts` with server-fetched snapshots and incremental updates.
+- Keep selector contracts stable where possible to minimize route-component rewrites during backend cutover.
+- Wire Events timeline entries to real incident/audit ingestion once backend event schemas are finalized.

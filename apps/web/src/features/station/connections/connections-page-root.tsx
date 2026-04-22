@@ -1,14 +1,32 @@
 "use client";
 
 import { useMemo } from "react";
+import { ActionRow } from "@/components/ops/action-row";
+import { ProviderCard } from "@/components/ops/provider-card";
+import { StatusPill } from "@/components/ops/status-pill";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
-import { cn } from "@/lib/utils";
+
+const oauthFlowStates = [
+  "disconnected",
+  "connecting",
+  "consent_review",
+  "callback_pending",
+  "connected",
+  "degraded",
+  "disconnecting",
+  "failed",
+] as const;
 
 export function ConnectionsPageRoot() {
   const state = useMockDomainStore((snapshot) => snapshot);
   const actions = useMemo(() => getMockDomainActions(), []);
-  const selectedId = state.inspectorSelection?.kind === "connection" ? state.inspectorSelection.id : null;
+  const selectedId =
+    state.inspectorSelection?.kind === "connection"
+      ? state.inspectorSelection.id
+      : state.connections[0]?.id;
+
+  const selectedConnection = state.connections.find((item) => item.id === selectedId);
 
   return (
     <section className="space-y-4">
@@ -16,31 +34,69 @@ export function ConnectionsPageRoot() {
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Station</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Connections</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          OAuth-style provider states are mocked in this phase.
+          OAuth lifecycle is fully mocked for deterministic operator training.
         </p>
       </header>
 
       <div className="grid gap-3 lg:grid-cols-2">
         {state.connections.map((connection) => (
-          <button
+          <ProviderCard
             key={connection.id}
-            type="button"
+            connection={connection}
+            selected={selectedId === connection.id}
             onClick={() => actions.selectInspector({ kind: "connection", id: connection.id })}
-            className={cn(
-              "rounded-xl border border-border/75 bg-background/80 px-4 py-3 text-left transition-colors",
-              selectedId === connection.id
-                ? "border-primary/60 bg-primary/10"
-                : "hover:bg-muted/40"
-            )}
-          >
-            <p className="text-sm font-medium capitalize">{connection.provider}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Status: {connection.status}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Scopes: {connection.scopes.join(", ")}
-            </p>
-          </button>
+            actions={
+              <ActionRow
+                items={[
+                  {
+                    label: "Reconnect",
+                    onClick: () =>
+                      actions.reconnectConnection(connection.id, { shouldFail: false }),
+                  },
+                  {
+                    label: "Reconnect (Fail)",
+                    onClick: () =>
+                      actions.reconnectConnection(connection.id, { shouldFail: true }),
+                    variant: "outline",
+                  },
+                  {
+                    label: "Disconnect",
+                    variant: "destructive",
+                    onClick: () => {
+                      const approved = window.confirm(
+                        `Disconnect ${connection.provider} and revoke scopes?`
+                      );
+
+                      if (approved) {
+                        actions.disconnectConnection(connection.id);
+                      }
+                    },
+                  },
+                ]}
+              />
+            }
+          />
         ))}
       </div>
+
+      <article className="rounded-xl border border-border/75 bg-background/80 p-4">
+        <h2 className="text-sm font-semibold">OAuth visual flow states</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Transition sequence used by reconnect/disconnect mocks and event timeline.
+        </p>
+
+        {selectedConnection ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {oauthFlowStates.map((status) => (
+              <StatusPill
+                key={status}
+                tone={selectedConnection.status === status ? "warning" : "muted"}
+                label={status}
+              />
+            ))}
+          </div>
+        ) : null}
+      </article>
     </section>
   );
 }

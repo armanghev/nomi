@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeftIcon, MessageSquareTextIcon, PlusIcon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquareTextIcon, PinIcon, PlusIcon } from "lucide-react";
+import type { Conversation, Source } from "@/features/mock-domain/types";
 import { cn } from "@/lib/utils";
 
 type HistorySection =
@@ -12,10 +13,13 @@ type HistorySection =
   | "Last Month"
   | "All Time";
 
-type ChatHistoryItem = {
-  id: string;
-  title: string;
-  updatedAt: string;
+type ChatHistorySidebarProps = {
+  conversations?: Conversation[];
+  activeConversationId?: string | null;
+  onSelectConversation?: (conversationId: string) => void;
+  onStartNewConversation?: () => void;
+  sources?: Source[];
+  onToggleSourcePin?: (sourceId: string, pinned: boolean) => void;
 };
 
 const HISTORY_SECTIONS: readonly HistorySection[] = [
@@ -25,6 +29,12 @@ const HISTORY_SECTIONS: readonly HistorySection[] = [
   "Last Month",
   "All Time",
 ];
+
+type ChatHistoryItem = {
+  id: string;
+  title: string;
+  updatedAt: string;
+};
 
 function buildMockHistory(referenceDate: Date): ChatHistoryItem[] {
   const base = referenceDate.getTime();
@@ -36,11 +46,6 @@ function buildMockHistory(referenceDate: Date): ChatHistoryItem[] {
       updatedAt: new Date(base - 35 * 60_000).toISOString(),
     },
     {
-      id: "chat-today-2",
-      title: "Staging deploy checklist",
-      updatedAt: new Date(base - 2 * 60 * 60_000).toISOString(),
-    },
-    {
       id: "chat-yesterday-1",
       title: "Prompt tuning notes",
       updatedAt: new Date(base - 1 * 24 * 60 * 60_000 - 50 * 60_000).toISOString(),
@@ -49,26 +54,6 @@ function buildMockHistory(referenceDate: Date): ChatHistoryItem[] {
       id: "chat-week-1",
       title: "Incident timeline recap",
       updatedAt: new Date(base - 3 * 24 * 60 * 60_000).toISOString(),
-    },
-    {
-      id: "chat-week-2",
-      title: "Memory schema draft",
-      updatedAt: new Date(base - 6 * 24 * 60 * 60_000).toISOString(),
-    },
-    {
-      id: "chat-month-1",
-      title: "Agent routing experiment",
-      updatedAt: new Date(base - 12 * 24 * 60 * 60_000).toISOString(),
-    },
-    {
-      id: "chat-month-2",
-      title: "Cost optimization pass",
-      updatedAt: new Date(base - 27 * 24 * 60 * 60_000).toISOString(),
-    },
-    {
-      id: "chat-all-time-1",
-      title: "First prototype kickoff",
-      updatedAt: new Date(base - 90 * 24 * 60 * 60_000).toISOString(),
     },
   ];
 }
@@ -125,16 +110,44 @@ function groupHistoryBySection(
   return grouped;
 }
 
-export function ChatHistorySidebar() {
+function groupSources(sources: Source[]) {
+  return sources.reduce<Record<Source["group"], Source[]>>(
+    (acc, source) => {
+      acc[source.group].push(source);
+      return acc;
+    },
+    { memories: [], docs: [], telemetry: [] }
+  );
+}
+
+export function ChatHistorySidebar({
+  conversations,
+  activeConversationId,
+  onSelectConversation,
+  onStartNewConversation,
+  sources,
+  onToggleSourcePin,
+}: ChatHistorySidebarProps) {
   const referenceDate = useMemo(() => new Date(), []);
-  const history = useMemo(() => buildMockHistory(referenceDate), [referenceDate]);
+  const staticHistory = useMemo(() => buildMockHistory(referenceDate), [referenceDate]);
+  const dynamicHistory =
+    conversations?.map((conversation) => ({
+      id: conversation.id,
+      title: conversation.title,
+      updatedAt: conversation.updatedAt,
+    })) ?? staticHistory;
+
   const groupedHistory = useMemo(
-    () => groupHistoryBySection(history, referenceDate),
-    [history, referenceDate]
+    () => groupHistoryBySection(dynamicHistory, referenceDate),
+    [dynamicHistory, referenceDate]
   );
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(
-    history[0]?.id ?? null
+
+  const [fallbackActiveConversationId, setFallbackActiveConversationId] = useState<string | null>(
+    dynamicHistory[0]?.id ?? null
   );
+
+  const selectedConversationId = activeConversationId ?? fallbackActiveConversationId;
+  const groupedSources = groupSources(sources ?? []);
 
   return (
     <aside className="sticky top-0 hidden h-screen border-r border-border/70 bg-sidebar/90 px-3 py-4 lg:flex lg:flex-col">
@@ -153,6 +166,7 @@ export function ChatHistorySidebar() {
 
       <button
         type="button"
+        onClick={onStartNewConversation}
         className="mb-4 flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-sm text-background transition-opacity hover:opacity-90"
       >
         <PlusIcon className="size-4" />
@@ -172,13 +186,20 @@ export function ChatHistorySidebar() {
                 </p>
               ) : (
                 groupedHistory[section].map((item) => {
-                  const isActive = item.id === activeConversationId;
+                  const isActive = item.id === selectedConversationId;
 
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setActiveConversationId(item.id)}
+                      onClick={() => {
+                        if (onSelectConversation) {
+                          onSelectConversation(item.id);
+                          return;
+                        }
+
+                        setFallbackActiveConversationId(item.id);
+                      }}
                       className={cn(
                         "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors",
                         isActive
@@ -195,6 +216,37 @@ export function ChatHistorySidebar() {
             </div>
           </section>
         ))}
+
+        {sources && sources.length > 0 ? (
+          <section>
+            <p className="mb-2 px-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Source groups
+            </p>
+            <div className="space-y-3 rounded-xl border border-border/70 bg-background/70 p-2">
+              {(Object.keys(groupedSources) as Array<keyof typeof groupedSources>).map((group) => (
+                <div key={group} className="space-y-1">
+                  <p className="px-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {group}
+                  </p>
+                  {groupedSources[group].map((source) => (
+                    <button
+                      key={source.id}
+                      type="button"
+                      onClick={() => onToggleSourcePin?.(source.id, source.pinned)}
+                      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted/60"
+                      aria-label={`${source.pinned ? "Unpin" : "Pin"} source ${source.label}`}
+                    >
+                      <span className="truncate">{source.label}</span>
+                      <PinIcon
+                        className={cn("size-3.5", source.pinned ? "text-primary" : "text-muted-foreground")}
+                      />
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </aside>
   );

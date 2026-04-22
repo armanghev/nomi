@@ -167,10 +167,10 @@ Expected: event-first mutation and sync guarantees are validated.
 - Create `/Users/armanghevondyan/dev/nomi/apps/web/src/features/station/dashboard/*`
 - Wire `/station/dashboard/page.tsx`
 
-- [ ] Step 1: Add health summary block and active-agent status list.
-- [ ] Step 2: Add recent failures/retries panel with jump links into `/station/events`.
-- [ ] Step 3: Add latency/cost trend tiles fed by mock model run data.
-- [ ] Step 4: Add quick actions section linked to tokens, connections, and events workflows.
+- [x] Step 1: Add health summary block and active-agent status list.
+- [x] Step 2: Add recent failures/retries panel with jump links into `/station/events`.
+- [x] Step 3: Add latency/cost trend tiles fed by mock model run data.
+- [x] Step 4: Add quick actions section linked to tokens, connections, and events workflows.
 
 Expected: dashboard gives high-signal triage view with meaningful links.
 
@@ -182,12 +182,12 @@ Expected: dashboard gives high-signal triage view with meaningful links.
 - Create `/Users/armanghevondyan/dev/nomi/apps/web/src/features/station/agents/*`
 - Wire `/station/agents/page.tsx`
 
-- [ ] Step 1: Render agent list with live status and recent run metrics.
-- [ ] Step 2: Add per-agent run timeline excerpt.
-- [ ] Step 3: Add inspector actions:
+- [x] Step 1: Render agent list with live status and recent run metrics.
+- [x] Step 2: Add per-agent run timeline excerpt.
+- [x] Step 3: Add inspector actions:
   - retry failed run
   - re-run with same context
-- [ ] Step 4: Ensure actions emit and resolve Events records.
+- [x] Step 4: Ensure actions emit and resolve Events records.
 
 Expected: operators can inspect and operate run failures quickly.
 
@@ -199,10 +199,10 @@ Expected: operators can inspect and operate run failures quickly.
 - Create `/Users/armanghevondyan/dev/nomi/apps/web/src/features/station/memories/*`
 - Wire `/station/memories/page.tsx`
 
-- [ ] Step 1: Render memory list with provenance and usage markers.
-- [ ] Step 2: Implement inline edit flow.
-- [ ] Step 3: Implement delete flow with confirmation.
-- [ ] Step 4: Emit memory write/delete events and propagate to chat context state.
+- [x] Step 1: Render memory list with provenance and usage markers.
+- [x] Step 2: Implement inline edit flow.
+- [x] Step 3: Implement delete flow with confirmation.
+- [x] Step 4: Emit memory write/delete events and propagate to chat context state.
 
 Expected: memory lifecycle is fully controllable and reflected globally.
 
@@ -214,8 +214,8 @@ Expected: memory lifecycle is fully controllable and reflected globally.
 - Create `/Users/armanghevondyan/dev/nomi/apps/web/src/features/station/connections/*`
 - Wire `/station/connections/page.tsx`
 
-- [ ] Step 1: Render provider cards (Google, GitHub) with scope and health metadata.
-- [ ] Step 2: Implement mocked OAuth visual flow states:
+- [x] Step 1: Render provider cards (Google, GitHub) with scope and health metadata.
+- [x] Step 2: Implement mocked OAuth visual flow states:
   - disconnected
   - connecting
   - consent_review
@@ -224,8 +224,8 @@ Expected: memory lifecycle is fully controllable and reflected globally.
   - degraded
   - disconnecting
   - failed
-- [ ] Step 3: Implement reconnect/disconnect interactions with confirmation and rollback path.
-- [ ] Step 4: Emit connection lifecycle events for all transitions.
+- [x] Step 3: Implement reconnect/disconnect interactions with confirmation and rollback path.
+- [x] Step 4: Emit connection lifecycle events for all transitions.
 
 Run:
 
@@ -244,10 +244,10 @@ Expected: complete mocked OAuth flow is deterministic and test-covered.
 - Create `/Users/armanghevondyan/dev/nomi/apps/web/src/features/station/tokens/*`
 - Wire `/station/tokens/page.tsx`
 
-- [ ] Step 1: Render token inventory with status, last-used, cost attribution.
-- [ ] Step 2: Implement create/revoke/pause/resume mocked flows.
-- [ ] Step 3: Add anomaly indicators (mock heuristic tags).
-- [ ] Step 4: Ensure token actions update dashboard/events selectors immediately.
+- [x] Step 1: Render token inventory with status, last-used, cost attribution.
+- [x] Step 2: Implement create/revoke/pause/resume mocked flows.
+- [x] Step 3: Add anomaly indicators (mock heuristic tags).
+- [x] Step 4: Ensure token actions update dashboard/events selectors immediately.
 
 Run:
 
@@ -266,16 +266,16 @@ Expected: token workflows are stable and cross-route sync is intact.
 - Create `/Users/armanghevondyan/dev/nomi/apps/web/src/features/station/events/*`
 - Wire `/station/events/page.tsx`
 
-- [ ] Step 1: Render full timeline grouped by event type and severity.
-- [ ] Step 2: Add filter/search controls (type, severity, token, conversation, model).
-- [ ] Step 3: Implement inspector with required actions:
+- [x] Step 1: Render full timeline grouped by event type and severity.
+- [x] Step 2: Add filter/search controls (type, severity, token, conversation, model).
+- [x] Step 3: Implement inspector with required actions:
   - ack/resolve
   - retry failed run
   - re-run prompt with same context
   - pause/resume token (where applicable)
   - memory edit/delete entry points
   - source pin/unpin entry points
-- [ ] Step 4: Ensure retry lifecycle transitions are explicit in timeline (`queued -> running -> success|failed`).
+- [x] Step 4: Ensure retry lifecycle transitions are explicit in timeline (`queued -> running -> success|failed`).
 
 Run:
 
@@ -294,11 +294,11 @@ Expected: Events works as source-of-truth surface for operations.
 - Create/update `/Users/armanghevondyan/dev/nomi/apps/web/src/features/chat/*`
 - Update `/Users/armanghevondyan/dev/nomi/apps/web/src/app/(protected)/chat/page.tsx`
 
-- [ ] Step 1: Build chat-specific sidebar with conversation list and source groups.
-- [ ] Step 2: Add sidebar header back button to `/station/dashboard`.
-- [ ] Step 3: Implement message timeline + composer UI using mock conversation data.
-- [ ] Step 4: Implement source pin/unpin controls that update shared store and emit events.
-- [ ] Step 5: Add links from chat context to related station events.
+- [x] Step 1: Build chat-specific sidebar with conversation list and source groups.
+- [x] Step 2: Add sidebar header back button to `/station/dashboard`.
+- [x] Step 3: Implement message timeline + composer UI using mock conversation data.
+- [x] Step 4: Implement source pin/unpin controls that update shared store and emit events.
+- [x] Step 5: Add links from chat context to related station events.
 
 Run:
 
@@ -332,10 +332,10 @@ Expected: cohesive station aesthetic without generic dashboard/chatbot feel.
 **Files:**
 - Update relevant tests/snapshots/docs
 
-- [ ] Step 1: Run full test suite and fix failing tests.
-- [ ] Step 2: Run lint and resolve all errors/warnings tied to changed files.
-- [ ] Step 3: Remove or archive obsolete legacy components/routes replaced by Station+Chat architecture.
-- [ ] Step 4: Document mock-domain assumptions and backend handoff points in `apps/web/README.md`.
+- [x] Step 1: Run full test suite and fix failing tests.
+- [x] Step 2: Run lint and resolve all errors/warnings tied to changed files.
+- [x] Step 3: Remove or archive obsolete legacy components/routes replaced by Station+Chat architecture.
+- [x] Step 4: Document mock-domain assumptions and backend handoff points in `apps/web/README.md`.
 
 Run:
 

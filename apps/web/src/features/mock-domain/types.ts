@@ -23,6 +23,7 @@ export type DashboardMetricId =
   | "dailyCostUsd";
 
 export type EventType =
+  | "token.create"
   | "token.pause"
   | "token.resume"
   | "token.revoke"
@@ -43,6 +44,8 @@ export type Agent = {
   status: AgentStatus;
   activeRuns: number;
   failureRate: number;
+  lastRunAt: string;
+  lastRunStatus: "success" | "failed";
 };
 
 export type MemoryItem = {
@@ -51,6 +54,7 @@ export type MemoryItem = {
   value: string;
   updatedAt: string;
   sourceCount: number;
+  provenance: "manual" | "imported" | "derived";
 };
 
 export type Connection = {
@@ -59,6 +63,7 @@ export type Connection = {
   status: ConnectionStatus;
   scopes: string[];
   lastSyncAt: string | null;
+  healthScore: number;
 };
 
 export type Token = {
@@ -67,6 +72,7 @@ export type Token = {
   status: TokenStatus;
   lastUsedAt: string | null;
   dailyCostUsd: number;
+  anomalyTags: string[];
 };
 
 export type Source = {
@@ -74,6 +80,14 @@ export type Source = {
   label: string;
   pinned: boolean;
   conversationId: string;
+  group: "memories" | "docs" | "telemetry";
+};
+
+export type ConversationMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
 };
 
 export type Conversation = {
@@ -81,11 +95,14 @@ export type Conversation = {
   title: string;
   sourceIds: string[];
   updatedAt: string;
+  messages: ConversationMessage[];
 };
 
 export type ModelRun = {
   id: string;
+  agentId: string;
   conversationId: string;
+  model: string;
   latencyMs: number;
   costUsd: number;
   status: "success" | "failed";
@@ -117,6 +134,10 @@ export type MockDomainState = {
 };
 
 export type MemoryUpdate = Partial<Pick<MemoryItem, "label" | "value">>;
+export type TokenCreateInput = {
+  label: string;
+  dailyCostUsd: number;
+};
 
 export type InspectorSelection =
   | { kind: "dashboard-metric"; id: DashboardMetricId }
