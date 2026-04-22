@@ -2,29 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
-  IconAdjustmentsHorizontal,
   IconArrowUp,
   IconCirclePlus,
-  IconClipboard,
-  IconHistory,
-  IconLink,
   IconPaperclip,
-  IconPlayerPlay,
   IconPlus,
-  IconSparkles,
-  IconTemplate,
   IconX,
 } from "@tabler/icons-react";
 import Image from "next/image";
@@ -46,12 +30,6 @@ export default function Ai04({
   const [isDragOver, setIsDragOver] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [settings, setSettings] = useState({
-    autoComplete: true,
-    streaming: false,
-    showHistory: false,
-  });
 
   const generateFileId = () => Math.random().toString(36).substring(7);
   const processFiles = (files: File[]) => {
@@ -83,9 +61,6 @@ export default function Ai04({
       onSubmit(prompt.trim());
       setPrompt("");
     }
-  };
-  const updateSetting = (key: keyof typeof settings, value: boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
   };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,95 +171,16 @@ export default function Ai04({
                 type="file"
               />
 
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button className="ml-[-2px] rounded" size="icon-sm" type="button" variant="ghost" aria-label="Add attachments" />}><IconPlus size={16} /></DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="max-w-xs rounded p-1.5"
-                >
-                  <DropdownMenuGroup className="space-y-1">
-                    <DropdownMenuItem
-                      className="rounded text-xs"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconPaperclip className="text-muted-foreground" size={16} />
-                        <span>Attach Files</span>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded text-xs">
-                      <div className="flex items-center gap-2">
-                        <IconLink className="text-muted-foreground" size={16} />
-                        <span>Import from URL</span>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded text-xs">
-                      <div className="flex items-center gap-2">
-                        <IconClipboard className="text-muted-foreground" size={16} />
-                        <span>Paste from Clipboard</span>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded text-xs">
-                      <div className="flex items-center gap-2">
-                        <IconTemplate className="text-muted-foreground" size={16} />
-                        <span>Use Template</span>
-                      </div>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button className="rounded" size="icon-sm" type="button" variant="ghost" aria-label="Adjust settings" />}><IconAdjustmentsHorizontal size={16} /></DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="w-48 rounded-2xl p-3"
-                >
-                  <DropdownMenuGroup className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <IconSparkles className="text-muted-foreground" size={16} />
-                        <Label className="text-xs">Auto-complete</Label>
-                      </div>
-                      <Switch
-                        checked={settings.autoComplete}
-                        className="scale-75"
-                        onCheckedChange={(value) =>
-                          updateSetting("autoComplete", value)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <IconPlayerPlay className="text-muted-foreground" size={16} />
-                        <Label className="text-xs">Streaming</Label>
-                      </div>
-                      <Switch
-                        checked={settings.streaming}
-                        className="scale-75"
-                        onCheckedChange={(value) =>
-                          updateSetting("streaming", value)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <IconHistory className="text-muted-foreground" size={16} />
-                        <Label className="text-xs">Show History</Label>
-                      </div>
-                      <Switch
-                        checked={settings.showHistory}
-                        className="scale-75"
-                        onCheckedChange={(value) =>
-                          updateSetting("showHistory", value)
-                        }
-                      />
-                    </div>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                aria-label="Add attachments"
+                className="ml-[-2px] rounded"
+                onClick={() => fileInputRef.current?.click()}
+                size="icon-sm"
+                type="button"
+                variant="ghost"
+              >
+                <IconPlus size={16} />
+              </Button>
             </div>
 
             <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
