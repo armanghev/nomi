@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeftIcon,
-  CommandIcon,
   MessageSquareTextIcon,
   MoonStarIcon,
   PlusIcon,
+  Search,
   SunIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,9 @@ function buildMockHistory(referenceDate: Date): ChatHistoryItem[] {
     {
       id: "chat-yesterday-1",
       title: "Prompt tuning notes",
-      updatedAt: new Date(base - 1 * 24 * 60 * 60_000 - 50 * 60_000).toISOString(),
+      updatedAt: new Date(
+        base - 1 * 24 * 60 * 60_000 - 50 * 60_000,
+      ).toISOString(),
     },
     {
       id: "chat-week-1",
@@ -96,7 +98,10 @@ function buildMockHistory(referenceDate: Date): ChatHistoryItem[] {
   ];
 }
 
-function resolveHistorySection(itemDate: Date, referenceDate: Date): HistorySection {
+function resolveHistorySection(
+  itemDate: Date,
+  referenceDate: Date,
+): HistorySection {
   const startOfToday = new Date(referenceDate);
   startOfToday.setHours(0, 0, 0, 0);
 
@@ -130,7 +135,7 @@ function resolveHistorySection(itemDate: Date, referenceDate: Date): HistorySect
 
 function groupHistoryBySection(
   history: ChatHistoryItem[],
-  referenceDate: Date
+  referenceDate: Date,
 ): Record<HistorySection, ChatHistoryItem[]> {
   const grouped = {
     Today: [],
@@ -141,7 +146,10 @@ function groupHistoryBySection(
   } as Record<HistorySection, ChatHistoryItem[]>;
 
   history.forEach((item) => {
-    const section = resolveHistorySection(new Date(item.updatedAt), referenceDate);
+    const section = resolveHistorySection(
+      new Date(item.updatedAt),
+      referenceDate,
+    );
     grouped[section].push(item);
   });
 
@@ -155,7 +163,10 @@ export function ChatHistorySidebar({
   onStartNewConversation,
 }: ChatHistorySidebarProps) {
   const referenceDate = useMemo(() => new Date(), []);
-  const staticHistory = useMemo(() => buildMockHistory(referenceDate), [referenceDate]);
+  const staticHistory = useMemo(
+    () => buildMockHistory(referenceDate),
+    [referenceDate],
+  );
   const dynamicHistory =
     conversations?.map((conversation) => ({
       id: conversation.id,
@@ -165,12 +176,11 @@ export function ChatHistorySidebar({
 
   const groupedHistory = useMemo(
     () => groupHistoryBySection(dynamicHistory, referenceDate),
-    [dynamicHistory, referenceDate]
+    [dynamicHistory, referenceDate],
   );
 
-  const [fallbackActiveConversationId, setFallbackActiveConversationId] = useState<string | null>(
-    dynamicHistory[0]?.id ?? null
-  );
+  const [fallbackActiveConversationId, setFallbackActiveConversationId] =
+    useState<string | null>(dynamicHistory[0]?.id ?? null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") {
@@ -186,7 +196,8 @@ export function ChatHistorySidebar({
     return saved === "light" ? "light" : "dark";
   });
 
-  const selectedConversationId = activeConversationId ?? fallbackActiveConversationId;
+  const selectedConversationId =
+    activeConversationId ?? fallbackActiveConversationId;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -219,9 +230,15 @@ export function ChatHistorySidebar({
   return (
     <>
       <Sidebar>
-        <SidebarHeader className="gap-2 p-3">
+        <SidebarHeader className="gap-2 p-2.5">
           <div className="grid grid-cols-3 gap-2">
-            <Button asChild type="button" variant="outline" size="sm" className="w-full">
+            <Button
+              asChild
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
               <Link href="/station/dashboard" aria-label="Back to Station">
                 <ArrowLeftIcon />
                 Back
@@ -231,12 +248,11 @@ export function ChatHistorySidebar({
               type="button"
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full gap-0.5"
               onClick={() => setCommandOpen(true)}
               aria-label="Open command menu"
             >
-              <CommandIcon />
-              Command
+              <Search />
             </Button>
             <Button
               type="button"
@@ -249,22 +265,23 @@ export function ChatHistorySidebar({
               {theme === "dark" ? <SunIcon /> : <MoonStarIcon />}
             </Button>
           </div>
+        </SidebarHeader>
 
+        <SidebarSeparator className="m-0" />
+
+        <SidebarContent className="p-2">
           <Button type="button" onClick={onStartNewConversation}>
             <PlusIcon />
             New chat
           </Button>
-        </SidebarHeader>
-
-        <SidebarSeparator />
-
-        <SidebarContent>
           {HISTORY_SECTIONS.map((section) => (
-            <SidebarGroup key={section}>
+            <SidebarGroup key={section} className="p-0">
               <SidebarGroupLabel>{section}</SidebarGroupLabel>
               <SidebarGroupContent>
                 {groupedHistory[section].length === 0 ? (
-                  <p className="px-2 py-1.5 text-xs text-sidebar-foreground/70">No chats yet.</p>
+                  <p className="px-2 py-1.5 text-xs text-sidebar-foreground/70">
+                    No chats yet.
+                  </p>
                 ) : (
                   <SidebarMenu className="gap-1">
                     {groupedHistory[section].map((item) => {
