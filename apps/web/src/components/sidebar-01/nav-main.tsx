@@ -16,7 +16,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
   return (
     <SidebarGroup>
-      <SidebarMenu>
+      <SidebarMenu className="gap-1">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive =
