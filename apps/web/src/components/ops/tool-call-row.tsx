@@ -90,12 +90,12 @@ export function ToolCallRow({ toolCall }: ToolCallRowProps) {
 
       {expanded ? (
         <div className="mt-2 w-0 min-w-full pl-7 text-[11px] text-muted-foreground">
-          <p className="break-words">
+          <p className="wrap-break-word">
             Account: <span className="break-all">{toolCall.accountEmail}</span>
           </p>
-          <p className="break-words">Started: {formatTimestamp(toolCall.startedAt)}</p>
-          <p className="break-words">Duration: {formatDuration(toolCall.durationMs)}</p>
-          <p className="break-words capitalize">Status: {toolCall.status}</p>
+          <p className="wrap-break-word">Started: {formatTimestamp(toolCall.startedAt)}</p>
+          <p className="wrap-break-word">Duration: {formatDuration(toolCall.durationMs)}</p>
+          <p className="wrap-break-word capitalize">Status: {toolCall.status}</p>
         </div>
       ) : null}
     </div>
