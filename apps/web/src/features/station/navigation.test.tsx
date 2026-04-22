@@ -24,22 +24,20 @@ describe("station and chat shells", () => {
     expect(screen.getByRole("link", { name: "Chat" })).toBeVisible();
   });
 
-  it("renders chat shell with back navigation", () => {
+  it("renders chat shell with chat sidebar and station topbar", () => {
     render(
       <ChatShell>
         <div>chat workspace</div>
       </ChatShell>
     );
 
-    const backLink = screen.getByRole("link", {
-      name: /back to station/i,
-    });
-
+    const backLink = screen.getByRole("button", { name: /back to station/i });
     expect(backLink).toHaveAttribute("href", "/station/dashboard");
     expect(screen.getByText("Today")).toBeVisible();
     expect(screen.getByText("Yesterday")).toBeVisible();
     expect(screen.getByText("Last 7 Days")).toBeVisible();
-    expect(screen.getByText("Last Month")).toBeVisible();
-    expect(screen.getByText("All Time")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Toggle theme" })).toBeVisible();
+    expect(screen.getByLabelText("Search station")).toBeVisible();
+    expect(screen.getByText("chat workspace")).toBeVisible();
   });
 });

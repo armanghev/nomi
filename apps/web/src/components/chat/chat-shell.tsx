@@ -1,3 +1,5 @@
+import { ChatTopbar } from "@/components/chat/chat-topbar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ChatHistorySidebar } from "./chat-history-sidebar";
 
 type ChatShellProps = {
@@ -7,12 +9,16 @@ type ChatShellProps = {
 
 export function ChatShell({ children, sidebar }: ChatShellProps) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_45%),radial-gradient(circle_at_100%_0%,color-mix(in_oklab,var(--accent)_20%,transparent),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background)_95%,black))]">
-      <div className="grid min-h-screen lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <SidebarProvider>
+      <div className="relative flex min-h-screen w-full bg-background">
         {sidebar ?? <ChatHistorySidebar />}
-
-        <main className="min-w-0 p-4 lg:p-6">{children}</main>
+        <SidebarInset className="flex min-w-0 flex-1 flex-col bg-background">
+          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+            <ChatTopbar />
+            <main className="flex min-h-0 flex-1 p-4 lg:p-6">{children}</main>
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

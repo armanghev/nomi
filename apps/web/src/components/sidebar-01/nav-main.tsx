@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { NavItem } from "./types";
 
 export function NavMain({ items }: { items: NavItem[] }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <SidebarGroup>

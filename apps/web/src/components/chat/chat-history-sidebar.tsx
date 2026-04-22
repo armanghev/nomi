@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftIcon, CommandIcon, MessageSquareTextIcon, PinIcon, PlusIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  CommandIcon,
+  MessageSquareTextIcon,
+  MoonStarIcon,
+  PlusIcon,
+  SunIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,8 +20,19 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import type { Conversation, Source } from "@/features/mock-domain/types";
-import { cn } from "@/lib/utils";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
+import type { Conversation } from "@/features/mock-domain/types";
 
 type HistorySection =
   | "Today"
@@ -27,8 +46,6 @@ type ChatHistorySidebarProps = {
   activeConversationId?: string | null;
   onSelectConversation?: (conversationId: string) => void;
   onStartNewConversation?: () => void;
-  sources?: Source[];
-  onToggleSourcePin?: (sourceId: string, pinned: boolean) => void;
 };
 
 const HISTORY_SECTIONS: readonly HistorySection[] = [
@@ -38,6 +55,18 @@ const HISTORY_SECTIONS: readonly HistorySection[] = [
   "Last Month",
   "All Time",
 ];
+
+const THEME_KEY = "nomi-theme";
+
+function applyTheme(mode: "light" | "dark") {
+  const root = document.documentElement;
+  root.classList.toggle("dark", mode === "dark");
+
+  const storage = window.localStorage;
+  if (storage && typeof storage.setItem === "function") {
+    storage.setItem(THEME_KEY, mode);
+  }
+}
 
 type ChatHistoryItem = {
   id: string;
@@ -119,23 +148,11 @@ function groupHistoryBySection(
   return grouped;
 }
 
-function groupSources(sources: Source[]) {
-  return sources.reduce<Record<Source["group"], Source[]>>(
-    (acc, source) => {
-      acc[source.group].push(source);
-      return acc;
-    },
-    { memories: [], docs: [], telemetry: [] }
-  );
-}
-
 export function ChatHistorySidebar({
   conversations,
   activeConversationId,
   onSelectConversation,
   onStartNewConversation,
-  sources,
-  onToggleSourcePin,
 }: ChatHistorySidebarProps) {
   const referenceDate = useMemo(() => new Date(), []);
   const staticHistory = useMemo(() => buildMockHistory(referenceDate), [referenceDate]);
@@ -155,9 +172,21 @@ export function ChatHistorySidebar({
     dynamicHistory[0]?.id ?? null
   );
   const [commandOpen, setCommandOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") {
+      return "dark";
+    }
+
+    const storage = window.localStorage;
+    const saved =
+      storage && typeof storage.getItem === "function"
+        ? storage.getItem(THEME_KEY)
+        : null;
+
+    return saved === "light" ? "light" : "dark";
+  });
 
   const selectedConversationId = activeConversationId ?? fallbackActiveConversationId;
-  const groupedSources = groupSources(sources ?? []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -171,120 +200,103 @@ export function ChatHistorySidebar({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
   function navigateTo(path: string) {
     if (typeof window !== "undefined") {
       window.location.assign(path);
     }
   }
 
+  function handleThemeToggle() {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+  }
+
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen border-r border-primary/25 bg-linear-to-b from-primary/10 via-primary/5 to-sidebar/95 px-3 py-4 lg:flex lg:flex-col">
-        <div className="mb-4 flex items-center gap-2">
-          <Link
-            href="/station/dashboard"
-            className="inline-flex h-9 flex-1 items-center justify-start gap-2 rounded-lg border border-primary/25 bg-primary/10 px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Back to Station"
-          >
-            <ArrowLeftIcon className="size-3.5" />
-            Back
-          </Link>
-          <button
-            type="button"
-            onClick={() => setCommandOpen(true)}
-            className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/10 px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Open command menu"
-          >
-            <CommandIcon className="size-3.5" />
-            Command
-          </button>
-        </div>
+      <Sidebar>
+        <SidebarHeader className="gap-2 p-3">
+          <div className="grid grid-cols-3 gap-2">
+            <Button asChild type="button" variant="outline" size="sm" className="w-full">
+              <Link href="/station/dashboard" aria-label="Back to Station">
+                <ArrowLeftIcon />
+                Back
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setCommandOpen(true)}
+              aria-label="Open command menu"
+            >
+              <CommandIcon />
+              Command
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleThemeToggle}
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <SunIcon /> : <MoonStarIcon />}
+            </Button>
+          </div>
 
-        <button
-          type="button"
-          onClick={onStartNewConversation}
-          className="mb-4 flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <PlusIcon className="size-4" />
-          New chat
-        </button>
+          <Button type="button" onClick={onStartNewConversation}>
+            <PlusIcon />
+            New chat
+          </Button>
+        </SidebarHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-2 pr-1">
+        <SidebarSeparator />
+
+        <SidebarContent>
           {HISTORY_SECTIONS.map((section) => (
-            <section key={section}>
-              <p className="mb-2 px-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                {section}
-              </p>
-              <div className="space-y-1">
+            <SidebarGroup key={section}>
+              <SidebarGroupLabel>{section}</SidebarGroupLabel>
+              <SidebarGroupContent>
                 {groupedHistory[section].length === 0 ? (
-                  <p className="rounded-lg px-2 py-1.5 text-xs text-muted-foreground/80">
-                    No chats yet.
-                  </p>
+                  <p className="px-2 py-1.5 text-xs text-sidebar-foreground/70">No chats yet.</p>
                 ) : (
-                  groupedHistory[section].map((item) => {
-                    const isActive = item.id === selectedConversationId;
+                  <SidebarMenu className="gap-1">
+                    {groupedHistory[section].map((item) => {
+                      const isActive = item.id === selectedConversationId;
 
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          if (onSelectConversation) {
-                            onSelectConversation(item.id);
-                            return;
-                          }
+                      return (
+                        <SidebarMenuItem key={item.id}>
+                          <SidebarMenuButton
+                            isActive={isActive}
+                            tooltip={item.title}
+                            onClick={() => {
+                              if (onSelectConversation) {
+                                onSelectConversation(item.id);
+                                return;
+                              }
 
-                          setFallbackActiveConversationId(item.id);
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors",
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-primary/20 hover:text-primary"
-                        )}
-                      >
-                        <MessageSquareTextIcon className="size-4 shrink-0" />
-                        <span className="truncate">{item.title}</span>
-                      </button>
-                    );
-                  })
+                              setFallbackActiveConversationId(item.id);
+                            }}
+                          >
+                            <MessageSquareTextIcon />
+                            <span>{item.title}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
                 )}
-              </div>
-            </section>
+              </SidebarGroupContent>
+            </SidebarGroup>
           ))}
-
-          {sources && sources.length > 0 ? (
-            <section>
-              <p className="mb-2 px-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                Source groups
-              </p>
-              <div className="space-y-3 rounded-xl border border-border/70 bg-background/70 p-2">
-                {(Object.keys(groupedSources) as Array<keyof typeof groupedSources>).map((group) => (
-                  <div key={group} className="space-y-1">
-                    <p className="px-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {group}
-                    </p>
-                    {groupedSources[group].map((source) => (
-                      <button
-                        key={source.id}
-                        type="button"
-                        onClick={() => onToggleSourcePin?.(source.id, source.pinned)}
-                        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted/60"
-                        aria-label={`${source.pinned ? "Unpin" : "Pin"} source ${source.label}`}
-                      >
-                        <span className="truncate">{source.label}</span>
-                        <PinIcon
-                          className={cn("size-3.5", source.pinned ? "text-primary" : "text-muted-foreground")}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-        </div>
-      </aside>
+        </SidebarContent>
+      </Sidebar>
 
       <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
         <CommandInput placeholder="Run a command..." />
@@ -297,7 +309,7 @@ export function ChatHistorySidebar({
                 onStartNewConversation?.();
               }}
             >
-              <PlusIcon className="size-4" />
+              <PlusIcon />
               New chat
             </CommandItem>
           </CommandGroup>

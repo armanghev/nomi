@@ -6,6 +6,7 @@ import Ai04Composer from "@/components/ai-04";
 import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar";
 import { ChatShell } from "@/components/chat/chat-shell";
 import { StatusPill } from "@/components/ops/status-pill";
+import { Button } from "@/components/ui/button";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { selectConversationSources } from "@/features/mock-domain/selectors";
 import { useMockDomainStore } from "@/features/mock-domain/store";
@@ -17,7 +18,6 @@ export function ChatWorkspacePageRoot() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     state.conversations[0]?.id ?? null
   );
-  const [composerValue, setComposerValue] = useState("");
 
   const activeConversation = activeConversationId
     ? state.conversations.find((conversation) => conversation.id === activeConversationId) ??
@@ -45,6 +45,14 @@ export function ChatWorkspacePageRoot() {
     actions.pinSource(sourceId);
   }
 
+  function handleSubmitMessage(prompt: string) {
+    const nextConversationId = actions.sendConversationMessage(
+      activeConversation?.id ?? null,
+      prompt.trim()
+    );
+    setActiveConversationId(nextConversationId);
+  }
+
   return (
     <ChatShell
       sidebar={
@@ -53,17 +61,25 @@ export function ChatWorkspacePageRoot() {
           activeConversationId={activeConversation?.id ?? null}
           onSelectConversation={(conversationId) => setActiveConversationId(conversationId)}
           onStartNewConversation={() => setActiveConversationId(null)}
-          sources={conversationSources}
-          onToggleSourcePin={toggleSource}
         />
       }
     >
-      <section className="space-y-4">
-        <header>
+      <section className="flex flex-col gap-4">
+        <header className="rounded-xl border border-border/75 bg-background/80 p-4">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Chat</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {activeConversation?.title ?? "New conversation"}
-          </h1>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {activeConversation?.title ?? "New conversation"}
+            </h1>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveConversationId(null)}
+            >
+              New chat
+            </Button>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Dedicated chat workspace connected to Station events and source controls.
           </p>
@@ -97,22 +113,7 @@ export function ChatWorkspacePageRoot() {
           </div>
 
           <div className="mt-4">
-            <Ai04Composer
-              value={composerValue}
-              onValueChange={setComposerValue}
-              onSubmit={() => {
-                if (!composerValue.trim()) {
-                  return;
-                }
-
-                const nextConversationId = actions.sendConversationMessage(
-                  activeConversation?.id ?? null,
-                  composerValue.trim()
-                );
-                setActiveConversationId(nextConversationId);
-                setComposerValue("");
-              }}
-            />
+            <Ai04Composer onSubmit={handleSubmitMessage} />
           </div>
         </article>
 
