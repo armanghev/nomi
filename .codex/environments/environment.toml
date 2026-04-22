@@ -8,4 +8,4 @@ script = "pnpm dev"
 [[actions]]
 name = "dev"
 icon = "tool"
-command = "pnpm dev"
+command = "open http://localhost:3000 && pnpm dev"
