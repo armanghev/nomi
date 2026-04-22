@@ -150,8 +150,8 @@ export function ChatHistorySidebar({
   const groupedSources = groupSources(sources ?? []);
 
   return (
-    <aside className="sticky top-0 hidden h-screen border-r border-border/70 bg-sidebar/90 px-3 py-4 lg:flex lg:flex-col">
-      <div className="mb-4 rounded-xl border border-border/75 bg-background/70 px-3 py-3">
+    <aside className="sticky top-0 hidden h-screen border-r border-primary/25 bg-gradient-to-b from-primary/10 via-primary/5 to-sidebar/95 px-3 py-4 lg:flex lg:flex-col">
+      <div className="mb-4 rounded-xl border border-primary/25 bg-primary/10 px-3 py-3">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Nomi</p>
         <h1 className="mt-1 text-lg font-semibold tracking-tight">Chat</h1>
         <Link
@@ -167,7 +167,7 @@ export function ChatHistorySidebar({
       <button
         type="button"
         onClick={onStartNewConversation}
-        className="mb-4 flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-sm text-background transition-opacity hover:opacity-90"
+        className="mb-4 flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
       >
         <PlusIcon className="size-4" />
         New chat
@@ -203,8 +203,8 @@ export function ChatHistorySidebar({
                       className={cn(
                         "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors",
                         isActive
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-primary/20 hover:text-primary"
                       )}
                     >
                       <MessageSquareTextIcon className="size-4 shrink-0" />

@@ -79,7 +79,7 @@ export function ChatWorkspacePageRoot() {
                   className={cn(
                     "rounded-xl border px-3 py-2",
                     message.role === "user"
-                      ? "ml-auto max-w-2xl border-foreground/10 bg-foreground text-background"
+                      ? "ml-auto max-w-2xl border-primary/50 bg-primary text-primary-foreground"
                       : "max-w-3xl border-border/70 bg-background/80"
                   )}
                 >
