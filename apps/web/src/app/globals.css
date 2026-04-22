@@ -196,3 +196,9 @@
     @apply font-sans;
   }
 }
+
+.font-nomi {
+  font-family: var(--font-oi), cursive;
+  font-style: normal;
+  font-weight: 400;
+}

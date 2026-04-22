@@ -27,6 +27,27 @@ function buildId(prefix: string, seed: number, index: number) {
   return `${prefix}-${seed}-${index}`;
 }
 
+function buildConversationId(seed: number, index: number) {
+  const rand = mulberry32(seed * 1_000 + index);
+  const bytes = new Uint8Array(16);
+
+  for (let byteIndex = 0; byteIndex < bytes.length; byteIndex += 1) {
+    bytes[byteIndex] = Math.floor(rand() * 256);
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
+    ""
+  );
+
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(
+    16,
+    20
+  )}-${hex.slice(20)}`;
+}
+
 function buildTimestamp(minutesOffset: number) {
   const base = new Date("2026-04-20T07:00:00.000Z");
   base.setMinutes(base.getMinutes() - minutesOffset);
@@ -38,7 +59,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
 
   const conversations: Conversation[] = [
     {
-      id: buildId("conv", seed, 1),
+      id: buildConversationId(seed, 1),
       title: "Operator baseline",
       sourceIds: [buildId("source", seed, 1), buildId("source", seed, 2)],
       updatedAt: buildTimestamp(2),
@@ -59,7 +80,7 @@ export function createSeededMockDomainState(seed = 1): MockDomainState {
       ],
     },
     {
-      id: buildId("conv", seed, 2),
+      id: buildConversationId(seed, 2),
       title: "Deploy checklist",
       sourceIds: [buildId("source", seed, 3)],
       updatedAt: buildTimestamp(18),

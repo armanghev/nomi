@@ -5,7 +5,7 @@ import { ChatHistorySidebar } from "./chat-history-sidebar";
 type ChatShellProps = {
   children: React.ReactNode;
   sidebar?: React.ReactNode;
-  title: String;
+  title: string;
 };
 
 export function ChatShell({ children, sidebar, title }: ChatShellProps) {

@@ -79,19 +79,19 @@ function buildMockHistory(referenceDate: Date): ChatHistoryItem[] {
 
   return [
     {
-      id: "chat-today-1",
+      id: "e1667ab8-2052-4e78-8d3f-7f7159471d51",
       title: "Operator baseline",
       updatedAt: new Date(base - 35 * 60_000).toISOString(),
     },
     {
-      id: "chat-yesterday-1",
+      id: "3190e1f5-6f3e-44c8-9eab-c1758ac2d99c",
       title: "Prompt tuning notes",
       updatedAt: new Date(
         base - 1 * 24 * 60 * 60_000 - 50 * 60_000,
       ).toISOString(),
     },
     {
-      id: "chat-week-1",
+      id: "1d094358-6f6b-4ce1-bf79-8df397f9f67e",
       title: "Incident timeline recap",
       updatedAt: new Date(base - 3 * 24 * 60 * 60_000).toISOString(),
     },
@@ -197,7 +197,9 @@ export function ChatHistorySidebar({
   });
 
   const selectedConversationId =
-    activeConversationId ?? fallbackActiveConversationId;
+    activeConversationId === undefined
+      ? fallbackActiveConversationId
+      : activeConversationId;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -270,7 +272,17 @@ export function ChatHistorySidebar({
         <SidebarSeparator className="m-0" />
 
         <SidebarContent className="p-2">
-          <Button type="button" onClick={onStartNewConversation}>
+          <Button
+            type="button"
+            onClick={() => {
+              if (onStartNewConversation) {
+                onStartNewConversation();
+                return;
+              }
+
+              setFallbackActiveConversationId(null);
+            }}
+          >
             <PlusIcon />
             New chat
           </Button>
@@ -323,7 +335,12 @@ export function ChatHistorySidebar({
             <CommandItem
               onSelect={() => {
                 setCommandOpen(false);
-                onStartNewConversation?.();
+                if (onStartNewConversation) {
+                  onStartNewConversation();
+                  return;
+                }
+
+                setFallbackActiveConversationId(null);
               }}
             >
               <PlusIcon />
