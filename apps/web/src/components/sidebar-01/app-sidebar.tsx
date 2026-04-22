@@ -10,7 +10,6 @@ import {
   IconTicket,
 } from "@tabler/icons-react";
 import { LayoutDashboard } from "lucide-react";
-import { NavCollapsible } from "@/components/sidebar-01/nav-collapsible";
 import { NavFooter } from "@/components/sidebar-01/nav-footer";
 import { NavHeader } from "@/components/sidebar-01/nav-header";
 import { NavMain } from "@/components/sidebar-01/nav-main";
@@ -67,42 +66,6 @@ const data: SidebarData = {
       icon: IconMessageCircle,
     },
   ],
-  navCollapsible: {
-    favorites: [
-      {
-        id: "local-dev",
-        title: "Local Dev",
-        href: "#",
-        color: "bg-emerald-400 dark:bg-emerald-300",
-      },
-      {
-        id: "preview",
-        title: "Preview",
-        href: "#",
-        color: "bg-blue-400 dark:bg-blue-300",
-      },
-      {
-        id: "production",
-        title: "Production",
-        href: "#",
-        color: "bg-orange-400 dark:bg-orange-300",
-      },
-    ],
-    teams: [
-      {
-        id: "routing",
-        title: "Routing",
-        icon: IconLink,
-      },
-    ],
-    topics: [
-      {
-        id: "token-ops",
-        title: "Token Ops",
-        icon: IconTicket,
-      },
-    ],
-  },
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -111,11 +74,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <NavHeader data={data} />
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavCollapsible
-          favorites={data.navCollapsible.favorites}
-          teams={data.navCollapsible.teams}
-          topics={data.navCollapsible.topics}
-        />
       </SidebarContent>
       <NavFooter user={data.user} />
     </Sidebar>

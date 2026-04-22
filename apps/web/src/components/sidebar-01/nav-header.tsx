@@ -74,51 +74,6 @@ export function NavHeader({ data }: NavHeaderProps) {
               </CommandItem>
             ))}
           </CommandGroup>
-          <CommandSeparator className="my-2" />
-          <CommandGroup heading="Favorites">
-            {data.navCollapsible.favorites.map((item) => (
-              <CommandItem
-                className="py-2!"
-                key={item.id}
-                onSelect={() => {
-                  setOpen(false);
-                }}
-              >
-                <div className={cn("mr-2 h-3 w-3 rounded-full", item.color)} />
-                <span>{item.title}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          <CommandSeparator className="my-2" />
-          <CommandGroup heading="Teams">
-            {data.navCollapsible.teams.map((item) => (
-              <CommandItem
-                className="py-2!"
-                key={item.id}
-                onSelect={() => {
-                  setOpen(false);
-                }}
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.title}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          <CommandSeparator className="my-2" />
-          <CommandGroup heading="Topics">
-            {data.navCollapsible.topics.map((item) => (
-              <CommandItem
-                className="py-2!"
-                key={item.id}
-                onSelect={() => {
-                  setOpen(false);
-                }}
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.title}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
         </CommandList>
       </CommandDialog>
     </>
