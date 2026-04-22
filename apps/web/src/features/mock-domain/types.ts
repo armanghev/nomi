@@ -109,9 +109,11 @@ export type Source = {
 
 export type ConversationMessage = {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "tool";
   content: string;
   createdAt: string;
+  toolCall?: ToolCall;
+  toolCalls?: ToolCall[];
 };
 
 export type Conversation = {

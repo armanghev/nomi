@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { getMockDomainStore } from "./store";
 import type { MockDomainStore } from "./store";
 import type {
+  Connection,
   ConnectionStatus,
   ConversationMessage,
   DomainEvent,
@@ -10,8 +11,16 @@ import type {
   EventType,
   InspectorSelection,
   MemoryUpdate,
+  ToolCall,
+  ToolCallStatus,
   TokenCreateInput,
 } from "./types";
+
+const ASSISTANT_STREAM_INTERVAL_MS = 28;
+const TOOL_PREFACE_DELAY_MS = 80;
+const TOOL_FIRST_START_DELAY_MS = 900;
+const TOOL_START_STAGGER_MS = 760;
+const TOOL_FINAL_RESPONSE_DELAY_MS = 220;
 
 function nowIso() {
   return new Date().toISOString();
@@ -116,7 +125,116 @@ function withUpdatedConversations(store: MockDomainStore) {
   }));
 }
 
-function createAssistantReply(content: string) {
+function normalize(value: string) {
+  return value.toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function includesAlias(haystack: string, alias: string) {
+  const normalizedAlias = normalize(alias);
+  if (!normalizedAlias) {
+    return false;
+  }
+
+  return haystack.includes(normalizedAlias);
+}
+
+function resolveMentionedConnections(content: string, connections: Connection[]) {
+  const normalizedContent = normalize(content);
+
+  return connections.filter((connection) => {
+    const aliases = [
+      connection.appName,
+      connection.provider,
+      connection.provider.replaceAll("_", " "),
+    ];
+
+    return aliases.some((alias) => includesAlias(normalizedContent, alias));
+  });
+}
+
+function selectToolForConnection(connection: Connection) {
+  const defaults: Partial<Record<Connection["provider"], string>> = {
+    github: "get_pr",
+    vercel: "get_deployment_logs",
+    gmail: "search_threads",
+    google_calendar: "list_events",
+    google_drive: "search_files",
+    notion: "search",
+    linear: "search_issues",
+  };
+
+  const preferred = defaults[connection.provider];
+  if (preferred && connection.availableTools.includes(preferred)) {
+    return preferred;
+  }
+
+  return connection.availableTools[0] ?? "run_tool";
+}
+
+type ToolExecutionPlan = {
+  messageId: string;
+  startedAt: string;
+  startDelayMs: number;
+  finishDelayMs: number;
+  finalDurationMs: number;
+  finalStatus: ToolCallStatus;
+  toolCall: ToolCall;
+};
+
+function resolveFinalToolStatus(connection: Connection, index: number): ToolCallStatus {
+  if (connection.status === "disconnected" || connection.status === "failed") {
+    return "failed";
+  }
+
+  if (connection.status === "degraded") {
+    return index % 2 === 0 ? "failed" : "success";
+  }
+
+  if (connection.healthScore < 60) {
+    return "failed";
+  }
+
+  return index % 5 === 0 && connection.healthScore < 80 ? "failed" : "success";
+}
+
+function buildToolExecutionPlan(args: {
+  connections: Connection[];
+  initialTimestamp: string;
+}) {
+  return args.connections.map((connection, index): ToolExecutionPlan => {
+    const startDelayMs = TOOL_FIRST_START_DELAY_MS + index * TOOL_START_STAGGER_MS;
+    const finalStatus = resolveFinalToolStatus(connection, index);
+    const finalDurationMs =
+      620 +
+      index * 190 +
+      (100 - connection.healthScore) * 4 +
+      (finalStatus === "failed" ? 260 : 0);
+    const finishDelayMs = startDelayMs + finalDurationMs;
+    const startedAt = args.initialTimestamp;
+
+    return {
+      messageId: `message-${nanoid(8)}`,
+      startedAt,
+      startDelayMs,
+      finishDelayMs,
+      finalDurationMs,
+      finalStatus,
+      toolCall: {
+        id: `tool-call-${nanoid(8)}`,
+        connectionId: connection.id,
+        provider: connection.provider,
+        appName: connection.appName,
+        accountEmail: connection.accountEmail,
+        toolName: selectToolForConnection(connection),
+        status: "running",
+        startedAt,
+        durationMs: null,
+      },
+    };
+  });
+}
+
+function createDefaultAssistantReply(content: string) {
   if (content.toLowerCase().includes("status")) {
     return "Current status: connections are healthy overall, one degraded provider requires review.";
   }
@@ -126,6 +244,250 @@ function createAssistantReply(content: string) {
   }
 
   return "Acknowledged. I linked this context back to Station so you can inspect related events.";
+}
+
+function createToolPreface(toolPlans: ToolExecutionPlan[]) {
+  const appNames = toolPlans.map((plan) => plan.toolCall.appName);
+
+  if (appNames.length === 1) {
+    return `On it — I’ll call ${appNames[0]} now and report back in a second.`;
+  }
+
+  if (appNames.length === 2) {
+    return `On it — I’ll call ${appNames[0]} and ${appNames[1]} now, then summarize what I find.`;
+  }
+
+  const head = appNames.slice(0, -1).join(", ");
+  const tail = appNames[appNames.length - 1];
+  return `On it — I’ll call ${head}, and ${tail}, then summarize the results.`;
+}
+
+function describeToolOutcome(toolCall: ToolCall) {
+  if (toolCall.status === "failed") {
+    const failedByProvider: Record<ToolCall["provider"], string> = {
+      github: "GitHub request failed due to an expired OAuth token.",
+      vercel: "Vercel logs request timed out for the selected deployment.",
+      gmail: "Gmail search failed because mailbox access was denied.",
+      google_calendar: "Google Calendar request failed because event scope is missing.",
+      google_drive: "Google Drive search failed due to permission mismatch.",
+      notion: "Notion search failed because the integration is disconnected.",
+      linear: "Linear issue query failed with an API auth error.",
+    };
+
+    return `${toolCall.appName}: ${failedByProvider[toolCall.provider]}`;
+  }
+
+  const successByProvider: Record<ToolCall["provider"], string> = {
+    github: "GitHub: Found open PR #148 \"tool-call-inline\" with 2 pending checks.",
+    vercel: "Vercel: Latest deployment is ready; logs show zero runtime errors in the last hour.",
+    gmail: "Gmail: Found 3 relevant threads, including one unread message from your instructor.",
+    google_calendar: "Google Calendar: Next event is \"Algorithms Office Hours\" at 2:00 PM.",
+    google_drive: "Google Drive: Found 4 matching docs; newest is \"Nomi Integration Notes\".",
+    notion: "Notion: Found the \"Nomi Operator Backlog\" page and 2 linked tasks.",
+    linear: "Linear: Found 5 matching issues; highest priority is NOMI-42.",
+  };
+
+  return successByProvider[toolCall.provider];
+}
+
+function createToolSummaryResponse(completedToolCalls: ToolCall[]) {
+  const successCount = completedToolCalls.filter(
+    (toolCall) => toolCall.status === "success"
+  ).length;
+  const failureCount = completedToolCalls.length - successCount;
+
+  const summaryHeader =
+    failureCount === 0
+      ? `Done. ${successCount} tool call${successCount === 1 ? "" : "s"} succeeded.`
+      : `Tool execution finished with ${successCount} success and ${failureCount} failure${failureCount === 1 ? "" : "s"}.`;
+
+  const details = completedToolCalls.map((toolCall) => `- ${describeToolOutcome(toolCall)}`);
+
+  return [summaryHeader, ...details].join("\n");
+}
+
+function appendMessageToConversation(
+  store: MockDomainStore,
+  conversationId: string,
+  message: ConversationMessage
+) {
+  store.setState((current) => ({
+    ...current,
+    conversations: current.conversations.map((conversation) =>
+      conversation.id === conversationId
+        ? {
+            ...conversation,
+            updatedAt: nowIso(),
+            messages: [...conversation.messages, message],
+          }
+        : conversation
+    ),
+  }));
+}
+
+function updateConversationMessageContent(args: {
+  store: MockDomainStore;
+  conversationId: string;
+  messageId: string;
+  content: string;
+}) {
+  args.store.setState((current) => ({
+    ...current,
+    conversations: current.conversations.map((conversation) =>
+      conversation.id === args.conversationId
+        ? {
+            ...conversation,
+            updatedAt: nowIso(),
+            messages: conversation.messages.map((message) =>
+              message.id === args.messageId
+                ? {
+                    ...message,
+                    content: args.content,
+                  }
+                : message
+            ),
+          }
+        : conversation
+    ),
+  }));
+}
+
+function streamAssistantMessage(args: {
+  store: MockDomainStore;
+  conversationId: string;
+  content: string;
+  startDelayMs?: number;
+  streamIntervalMs?: number;
+}) {
+  const messageId = `message-${nanoid(8)}`;
+  const tokens = args.content.split(/(\s+)/).filter((token) => token.length > 0);
+  const startDelayMs = args.startDelayMs ?? 0;
+  const streamIntervalMs = args.streamIntervalMs ?? ASSISTANT_STREAM_INTERVAL_MS;
+
+  setTimeout(() => {
+    appendMessageToConversation(args.store, args.conversationId, {
+      id: messageId,
+      role: "assistant",
+      content: "",
+      createdAt: nowIso(),
+    });
+
+    let nextContent = "";
+    tokens.forEach((token, index) => {
+      setTimeout(() => {
+        nextContent += token;
+        updateConversationMessageContent({
+          store: args.store,
+          conversationId: args.conversationId,
+          messageId,
+          content: nextContent,
+        });
+      }, index * streamIntervalMs);
+    });
+  }, startDelayMs);
+}
+
+function finalizeToolMessage(args: {
+  store: MockDomainStore;
+  conversationId: string;
+  messageId: string;
+  finalizedToolCall: ToolCall;
+}) {
+  args.store.setState((current) => ({
+    ...current,
+    toolCalls: [args.finalizedToolCall, ...current.toolCalls],
+    connections: current.connections.map((connection) => {
+      if (connection.id !== args.finalizedToolCall.connectionId) {
+        return connection;
+      }
+
+      if (args.finalizedToolCall.status === "success") {
+        return {
+          ...connection,
+          status: "connected",
+          lastSyncAt: nowIso(),
+          healthScore: Math.min(100, connection.healthScore + 3),
+        };
+      }
+
+      return {
+        ...connection,
+        status:
+          connection.status === "disconnected" ? connection.status : "degraded",
+        healthScore: Math.max(0, connection.healthScore - 5),
+      };
+    }),
+    conversations: current.conversations.map((conversation) => {
+      if (conversation.id !== args.conversationId) {
+        return conversation;
+      }
+
+      return {
+        ...conversation,
+        updatedAt: nowIso(),
+        messages: conversation.messages.map((message) =>
+          message.id === args.messageId
+            ? {
+                ...message,
+                toolCall: args.finalizedToolCall,
+              }
+            : message
+        ),
+      };
+    }),
+  }));
+}
+
+function simulateToolExecution(args: {
+  store: MockDomainStore;
+  conversationId: string;
+  plan: ToolExecutionPlan[];
+}) {
+  args.plan.forEach((execution) => {
+    setTimeout(() => {
+      appendMessageToConversation(args.store, args.conversationId, {
+        id: execution.messageId,
+        role: "tool",
+        content: "",
+        createdAt: nowIso(),
+        toolCall: execution.toolCall,
+      });
+    }, execution.startDelayMs);
+
+    setTimeout(() => {
+      const finalizedToolCall: ToolCall = {
+        ...execution.toolCall,
+        status: execution.finalStatus,
+        durationMs: execution.finalDurationMs,
+      };
+
+      finalizeToolMessage({
+        store: args.store,
+        conversationId: args.conversationId,
+        messageId: execution.messageId,
+        finalizedToolCall,
+      });
+    }, execution.finishDelayMs);
+  });
+
+  const lastFinishDelay = args.plan.reduce(
+    (maxDelay, execution) => Math.max(maxDelay, execution.finishDelayMs),
+    0
+  );
+
+  setTimeout(() => {
+    const completedToolCalls = args.plan.map((execution) => ({
+      ...execution.toolCall,
+      status: execution.finalStatus,
+      durationMs: execution.finalDurationMs,
+    }));
+    streamAssistantMessage({
+      store: args.store,
+      conversationId: args.conversationId,
+      content: createToolSummaryResponse(completedToolCalls),
+      startDelayMs: TOOL_FINAL_RESPONSE_DELAY_MS,
+    });
+  }, lastFinishDelay);
 }
 
 export function createMockDomainActions(store: MockDomainStore) {
@@ -647,17 +1009,20 @@ export function createMockDomainActions(store: MockDomainStore) {
 
     sendConversationMessage(conversationId: string | null, content: string) {
       const timestamp = nowIso();
+      const currentState = store.getState();
+      const matchedConnections = resolveMentionedConnections(
+        content,
+        currentState.connections
+      );
+      const executionPlan = buildToolExecutionPlan({
+        connections: matchedConnections,
+        initialTimestamp: timestamp,
+      });
       const userMessage: ConversationMessage = {
         id: `message-${nanoid(8)}`,
         role: "user",
         content,
         createdAt: timestamp,
-      };
-      const assistantMessage: ConversationMessage = {
-        id: `message-${nanoid(8)}`,
-        role: "assistant",
-        content: createAssistantReply(content),
-        createdAt: nowIso(),
       };
 
       const nextConversationId = conversationId ?? createUuid();
@@ -676,7 +1041,7 @@ export function createMockDomainActions(store: MockDomainStore) {
                 title: content.slice(0, 48),
                 sourceIds: [],
                 updatedAt: timestamp,
-                messages: [userMessage, assistantMessage],
+                messages: [userMessage],
               },
               ...current.conversations,
             ],
@@ -694,12 +1059,34 @@ export function createMockDomainActions(store: MockDomainStore) {
                       ? conversation.title
                       : content.slice(0, 48),
                   updatedAt: timestamp,
-                  messages: [...conversation.messages, userMessage, assistantMessage],
+                  messages: [...conversation.messages, userMessage],
                 }
               : conversation
           ),
         };
       });
+
+      if (executionPlan.length > 0) {
+        streamAssistantMessage({
+          store,
+          conversationId: nextConversationId,
+          content: createToolPreface(executionPlan),
+          startDelayMs: TOOL_PREFACE_DELAY_MS,
+        });
+
+        simulateToolExecution({
+          store,
+          conversationId: nextConversationId,
+          plan: executionPlan,
+        });
+      } else {
+        streamAssistantMessage({
+          store,
+          conversationId: nextConversationId,
+          content: createDefaultAssistantReply(content),
+          startDelayMs: TOOL_PREFACE_DELAY_MS,
+        });
+      }
 
       return nextConversationId;
     },

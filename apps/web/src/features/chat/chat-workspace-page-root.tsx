@@ -4,9 +4,11 @@ import { useMemo } from "react";
 import Ai04Composer from "@/components/ai-04";
 import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar";
 import { ChatShell } from "@/components/chat/chat-shell";
+import { ToolCallRow } from "@/components/ops/tool-call-row";
 import { Button } from "@/components/ui/button";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
+import type { ConversationMessage } from "@/features/mock-domain/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -14,6 +16,19 @@ import { useRouter } from "next/navigation";
 type ChatWorkspacePageRootProps = {
   conversationId?: string | null;
 };
+
+type RenderGroup =
+  | {
+      kind: "user";
+      message: {
+        id: string;
+        content: string;
+      };
+    }
+  | {
+      kind: "assistant";
+      messages: ConversationMessage[];
+    };
 
 export function ChatWorkspacePageRoot({
   conversationId = null,
@@ -39,6 +54,33 @@ export function ChatWorkspacePageRoot({
 
   const activeMessages = activeConversation?.messages ?? [];
   const hasMessages = activeMessages.length > 0;
+  const messageGroups: RenderGroup[] = activeMessages.reduce<RenderGroup[]>(
+    (groups, message) => {
+      if (message.role === "user") {
+        groups.push({
+          kind: "user",
+          message: {
+            id: message.id,
+            content: message.content,
+          },
+        });
+        return groups;
+      }
+
+      const previousGroup = groups[groups.length - 1];
+      if (previousGroup?.kind === "assistant") {
+        previousGroup.messages.push(message);
+        return groups;
+      }
+
+      groups.push({
+        kind: "assistant",
+        messages: [message],
+      });
+      return groups;
+    },
+    []
+  );
 
   return (
     <ChatShell
@@ -62,32 +104,39 @@ export function ChatWorkspacePageRoot({
         >
           <div className={cn("w-full", hasMessages ? "space-y-3" : "max-w-md")}>
             {hasMessages ? (
-              activeMessages.map((message) => {
-                const isUserMessage = message.role === "user";
+              messageGroups.map((group, groupIndex) => {
+                if (group.kind === "user") {
+                  return (
+                    <div key={group.message.id} className="flex w-full justify-end">
+                      <div className="max-w-[80%] rounded border-primary/50 bg-primary/80 px-3 py-2 text-primary-foreground">
+                        <p className="mt-1 whitespace-pre-wrap text-sm">{group.message.content}</p>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
-                  <div
-                    key={message.id}
-                    className={cn("flex w-full", isUserMessage ? "justify-end" : "justify-start")}
-                  >
-                    {isUserMessage ? (
-                      <div className="max-w-[80%] rounded border-primary/50 bg-primary/80 px-3 py-2 text-primary-foreground">
-                        <p className="mt-1 whitespace-pre-wrap text-sm">{message.content}</p>
+                  <div key={`assistant-group-${groupIndex}`} className="flex w-full justify-start">
+                    <div className="flex w-full max-w-[80%] items-start gap-2">
+                      <Image
+                        src="/nomi.png"
+                        alt="Nomi"
+                        width={40}
+                        height={40}
+                        className="mt-0.5 h-[40px] w-[40px] shrink-0 object-contain"
+                      />
+                      <div className="flex w-full min-w-0 flex-col items-stretch justify-start gap-1">
+                        {group.messages.map((message) =>
+                          message.role === "tool" && message.toolCall ? (
+                            <ToolCallRow key={message.id} toolCall={message.toolCall} />
+                          ) : (
+                            <p key={message.id} className="whitespace-pre-wrap text-sm">
+                              {message.content}
+                            </p>
+                          )
+                        )}
                       </div>
-                    ) : (
-                      <div className="flex max-w-[80%] items-start gap-2">
-                        <Image
-                          src="/nomi.png"
-                          alt="Nomi"
-                          width={40}
-                          height={40}
-                          className="mt-0.5 h-[40px] w-[40px] shrink-0 object-contain"
-                        />
-                        <div className="min-w-0">
-                          <p className="mt-1 whitespace-pre-wrap text-sm">{message.content}</p>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 );
               })

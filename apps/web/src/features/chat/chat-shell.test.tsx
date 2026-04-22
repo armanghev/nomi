@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatWorkspacePageRoot } from "@/features/chat/chat-workspace-page-root";
 import { createSeededMockDomainState } from "@/features/mock-domain/seed";
 import { getMockDomainStore } from "@/features/mock-domain/store";
@@ -17,6 +17,11 @@ vi.mock("next/navigation", () => ({
 describe("chat workspace page root", () => {
   beforeEach(() => {
     pushMock.mockReset();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows a draft state at /chat and keeps sidebar items unselected", () => {
@@ -51,5 +56,48 @@ describe("chat workspace page root", () => {
     expect(pushMock).toHaveBeenCalledWith(
       `/chat/${seeded.conversations[1].id}`
     );
+  });
+
+  it("renders inline tool rows while running and resolves with final assistant output", () => {
+    const seeded = createSeededMockDomainState(2);
+    const activeConversationId = seeded.conversations[0].id;
+    getMockDomainStore().reset(seeded);
+
+    render(<ChatWorkspacePageRoot conversationId={activeConversationId} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Ask anything"), {
+      target: { value: "Use GitHub to inspect my pull request." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    act(() => {
+      vi.advanceTimersByTime(220);
+    });
+
+    const conversation = getMockDomainStore()
+      .getState()
+      .conversations.find((item) => item.id === activeConversationId);
+    const prefaceMessage = conversation?.messages.at(-1);
+    expect(prefaceMessage?.role).toBe("assistant");
+    expect((prefaceMessage?.content ?? "").length).toBeGreaterThan(0);
+    expect(document.querySelector('[data-slot="tool-call-row"]')).toBeFalsy();
+
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+
+    expect(document.querySelector('[data-slot="tool-call-row"][data-status="running"]')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand tool call details" }));
+    expect(screen.getByText("Account:", { exact: false })).toBeVisible();
+    expect(screen.getByText("Duration:", { exact: false })).toBeVisible();
+
+    act(() => {
+      vi.advanceTimersByTime(2_800);
+    });
+
+    expect(document.querySelector('[data-slot="tool-call-row"][data-status="failed"]')).toBeTruthy();
+    expect(screen.getByText("Tool execution finished", { exact: false })).toBeVisible();
+    expect(screen.getByText("expired OAuth token", { exact: false })).toBeVisible();
   });
 });
