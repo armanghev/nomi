@@ -107,11 +107,21 @@ export type Source = {
   group: "memories" | "docs" | "telemetry";
 };
 
+export type ConversationAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  fileExtension?: string;
+  previewUrl?: string;
+};
+
 export type ConversationMessage = {
   id: string;
   role: "user" | "assistant" | "tool";
   content: string;
   createdAt: string;
+  attachments?: ConversationAttachment[];
   toolCall?: ToolCall;
   toolCalls?: ToolCall[];
 };

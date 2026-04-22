@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { ConversationAttachment } from "@/features/mock-domain/types";
 import { cn } from "@/lib/utils";
 import {
   IconArrowUp,
@@ -24,7 +25,7 @@ interface AttachedFile {
 export default function Ai04({
   onSubmit,
 }: {
-  onSubmit?: (prompt: string) => void;
+  onSubmit?: (prompt: string, attachments: ConversationAttachment[]) => void;
 }) {
   const [prompt, setPrompt] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
@@ -32,6 +33,15 @@ export default function Ai04({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateFileId = () => Math.random().toString(36).substring(7);
+  const getFileExtension = (fileName: string) => {
+    const extension = fileName.split(".").pop();
+    if (!extension || extension === fileName) {
+      return "FILE";
+    }
+
+    return extension.toUpperCase();
+  };
+
   const processFiles = (files: File[]) => {
     for (const file of files) {
       const fileId = generateFileId();
@@ -57,10 +67,26 @@ export default function Ai04({
     }
   };
   const submitPrompt = () => {
-    if (prompt.trim() && onSubmit) {
-      onSubmit(prompt.trim());
-      setPrompt("");
+    const trimmedPrompt = prompt.trim();
+    const hasPrompt = trimmedPrompt.length > 0;
+    const hasAttachments = attachedFiles.length > 0;
+
+    if ((!hasPrompt && !hasAttachments) || !onSubmit) {
+      return;
     }
+
+    const payloadAttachments: ConversationAttachment[] = attachedFiles.map((file) => ({
+      id: file.id,
+      name: file.name,
+      mimeType: file.file.type || "application/octet-stream",
+      size: file.file.size,
+      fileExtension: getFileExtension(file.name),
+      previewUrl: file.preview,
+    }));
+
+    onSubmit(trimmedPrompt, payloadAttachments);
+    setPrompt("");
+    setAttachedFiles([]);
   };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,7 +212,7 @@ export default function Ai04({
             <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
               <Button
                 className="rounded"
-                disabled={!prompt.trim()}
+                disabled={!prompt.trim() && attachedFiles.length === 0}
                 size="icon-sm"
                 type="submit"
                 variant="default"

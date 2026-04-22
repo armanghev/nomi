@@ -84,7 +84,7 @@ describe("mock domain store", () => {
 
     let next = store.getState();
     let conversation = next.conversations.find((item) => item.id === conversationId);
-    let prefaceMessage = conversation?.messages.at(-1);
+    const prefaceMessage = conversation?.messages.at(-1);
     let runningToolMessage = conversation?.messages.find((message) => message.role === "tool");
 
     expect(prefaceMessage?.role).toBe("assistant");
@@ -111,5 +111,40 @@ describe("mock domain store", () => {
     expect(assistantMessage?.content).toContain("Tool execution finished");
     expect(next.toolCalls[0]?.provider).toBe("github");
     expect(next.toolCalls[0]?.status).toBe("failed");
+  });
+
+  it("stores user attachments on conversation messages", () => {
+    const state = createSeededMockDomainState(17);
+    const store = createMockDomainStore(state);
+    const actions = createMockDomainActions(store);
+    const conversationId = store.getState().conversations[0]?.id;
+
+    expect(conversationId).toBeDefined();
+
+    actions.sendConversationMessage(conversationId as string, "See attached.", [
+      {
+        id: "attachment-1",
+        name: "deploy-plan.pdf",
+        mimeType: "application/pdf",
+        size: 2048,
+        fileExtension: "PDF",
+      },
+    ]);
+
+    const next = store.getState();
+    const conversation = next.conversations.find((item) => item.id === conversationId);
+    const lastUserMessage = [...(conversation?.messages ?? [])]
+      .reverse()
+      .find((message) => message.role === "user");
+
+    expect(lastUserMessage?.attachments).toEqual([
+      {
+        id: "attachment-1",
+        name: "deploy-plan.pdf",
+        mimeType: "application/pdf",
+        size: 2048,
+        fileExtension: "PDF",
+      },
+    ]);
   });
 });

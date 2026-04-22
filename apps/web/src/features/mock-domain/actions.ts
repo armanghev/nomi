@@ -4,6 +4,7 @@ import type { MockDomainStore } from "./store";
 import type {
   Connection,
   ConnectionStatus,
+  ConversationAttachment,
   ConversationMessage,
   DomainEvent,
   EventSeverity,
@@ -1007,11 +1008,19 @@ export function createMockDomainActions(store: MockDomainStore) {
       return event.id;
     },
 
-    sendConversationMessage(conversationId: string | null, content: string) {
+    sendConversationMessage(
+      conversationId: string | null,
+      content: string,
+      attachments: ConversationAttachment[] = []
+    ) {
       const timestamp = nowIso();
+      const normalizedContent = content.trim();
+      const nextTitle = normalizedContent
+        ? normalizedContent.slice(0, 48)
+        : attachments[0]?.name ?? "New conversation";
       const currentState = store.getState();
       const matchedConnections = resolveMentionedConnections(
-        content,
+        normalizedContent,
         currentState.connections
       );
       const executionPlan = buildToolExecutionPlan({
@@ -1021,8 +1030,9 @@ export function createMockDomainActions(store: MockDomainStore) {
       const userMessage: ConversationMessage = {
         id: `message-${nanoid(8)}`,
         role: "user",
-        content,
+        content: normalizedContent,
         createdAt: timestamp,
+        attachments: attachments.length > 0 ? attachments : undefined,
       };
 
       const nextConversationId = conversationId ?? createUuid();
@@ -1038,7 +1048,7 @@ export function createMockDomainActions(store: MockDomainStore) {
             conversations: [
               {
                 id: nextConversationId,
-                title: content.slice(0, 48),
+                title: nextTitle,
                 sourceIds: [],
                 updatedAt: timestamp,
                 messages: [userMessage],
@@ -1057,7 +1067,7 @@ export function createMockDomainActions(store: MockDomainStore) {
                   title:
                     conversation.title.trim().length > 0
                       ? conversation.title
-                      : content.slice(0, 48),
+                      : nextTitle,
                   updatedAt: timestamp,
                   messages: [...conversation.messages, userMessage],
                 }
@@ -1083,7 +1093,7 @@ export function createMockDomainActions(store: MockDomainStore) {
         streamAssistantMessage({
           store,
           conversationId: nextConversationId,
-          content: createDefaultAssistantReply(content),
+          content: createDefaultAssistantReply(normalizedContent),
           startDelayMs: TOOL_PREFACE_DELAY_MS,
         });
       }

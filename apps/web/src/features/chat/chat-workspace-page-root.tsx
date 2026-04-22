@@ -8,7 +8,10 @@ import { ToolCallRow } from "@/components/ops/tool-call-row";
 import { Button } from "@/components/ui/button";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
-import type { ConversationMessage } from "@/features/mock-domain/types";
+import type {
+  ConversationAttachment,
+  ConversationMessage,
+} from "@/features/mock-domain/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -23,6 +26,7 @@ type RenderGroup =
       message: {
         id: string;
         content: string;
+        attachments: ConversationAttachment[];
       };
     }
   | {
@@ -41,10 +45,36 @@ export function ChatWorkspacePageRoot({
       null
     : null;
 
-  function handleSubmitMessage(prompt: string) {
+  const getAttachmentExtension = (attachment: ConversationAttachment) => {
+    if (attachment.fileExtension) {
+      return attachment.fileExtension;
+    }
+
+    const extension = attachment.name.split(".").pop();
+    if (!extension || extension === attachment.name) {
+      return "FILE";
+    }
+
+    return extension.toUpperCase();
+  };
+
+  const getAttachmentBaseName = (attachment: ConversationAttachment) => {
+    const parts = attachment.name.split(".");
+    if (parts.length <= 1) {
+      return attachment.name;
+    }
+
+    return parts.slice(0, -1).join(".") || attachment.name;
+  };
+
+  function handleSubmitMessage(
+    prompt: string,
+    attachments: ConversationAttachment[] = []
+  ) {
     const nextConversationId = actions.sendConversationMessage(
       activeConversation?.id ?? null,
-      prompt.trim()
+      prompt.trim(),
+      attachments
     );
 
     if (conversationId !== nextConversationId) {
@@ -62,6 +92,7 @@ export function ChatWorkspacePageRoot({
           message: {
             id: message.id,
             content: message.content,
+            attachments: message.attachments ?? [],
           },
         });
         return groups;
@@ -108,8 +139,43 @@ export function ChatWorkspacePageRoot({
                 if (group.kind === "user") {
                   return (
                     <div key={group.message.id} className="flex w-full justify-end">
-                      <div className="max-w-[80%] rounded border-primary/50 bg-primary/80 px-3 py-2 text-primary-foreground">
-                        <p className="whitespace-pre-wrap text-sm">{group.message.content}</p>
+                      <div className="flex max-w-[80%] flex-col items-end">
+                        {group.message.attachments.length > 0 ? (
+                          <div className="mb-2 flex flex-wrap justify-end gap-2">
+                            {group.message.attachments.map((attachment) => (
+                              <div
+                                key={attachment.id}
+                                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md border-3 border-primary/50 bg-primary/80 text-primary-foreground"
+                                title={attachment.name}
+                              >
+                                {attachment.previewUrl ? (
+                                  <Image
+                                    src={attachment.previewUrl}
+                                    alt={attachment.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full flex-col justify-between p-1.5">
+                                    <span className="self-start px-1 py-0.5 text-[10px] font-semibold leading-none tracking-wide">
+                                      {getAttachmentExtension(attachment)}
+                                    </span>
+                                    <span className="block overflow-hidden break-all text-[10px] font-semibold leading-tight opacity-95">
+                                      {getAttachmentBaseName(attachment)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {group.message.content ? (
+                          <div className="rounded border-primary/50 bg-primary/80 px-3 py-2 text-primary-foreground">
+                            <p className="whitespace-pre-wrap text-sm">
+                              {group.message.content}
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   );
