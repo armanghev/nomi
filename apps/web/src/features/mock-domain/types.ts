@@ -3,7 +3,14 @@ export type EventStatus = "pending" | "success" | "failed" | "retrying";
 
 export type AgentStatus = "healthy" | "running" | "degraded" | "failed";
 
-export type ConnectionProvider = "google" | "github";
+export type ConnectionProvider =
+  | "github"
+  | "vercel"
+  | "gmail"
+  | "google_calendar"
+  | "google_drive"
+  | "notion"
+  | "linear";
 export type ConnectionStatus =
   | "disconnected"
   | "connecting"
@@ -60,10 +67,27 @@ export type MemoryItem = {
 export type Connection = {
   id: string;
   provider: ConnectionProvider;
+  appName: string;
+  accountEmail: string;
   status: ConnectionStatus;
   scopes: string[];
+  availableTools: string[];
   lastSyncAt: string | null;
   healthScore: number;
+};
+
+export type ToolCallStatus = "running" | "success" | "failed";
+
+export type ToolCall = {
+  id: string;
+  connectionId: string;
+  provider: ConnectionProvider;
+  appName: string;
+  accountEmail: string;
+  toolName: string;
+  status: ToolCallStatus;
+  startedAt: string;
+  durationMs: number | null;
 };
 
 export type Token = {
@@ -125,6 +149,7 @@ export type MockDomainState = {
   agents: Agent[];
   memories: MemoryItem[];
   connections: Connection[];
+  toolCalls: ToolCall[];
   tokens: Token[];
   events: DomainEvent[];
   conversations: Conversation[];

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ActionRow } from "@/components/ops/action-row";
+import { AppLogo } from "@/components/ops/app-logo";
 import { StatusPill } from "@/components/ops/status-pill";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { selectDashboardSummary } from "@/features/mock-domain/selectors";
@@ -139,10 +140,19 @@ export function StationInspector() {
     return (
       <article className="rounded-lg border border-border/70 bg-background/75 p-3">
         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Connection</p>
-        <p className="mt-2 text-sm font-medium capitalize">{connection.provider}</p>
+        <div className="mt-2 flex items-start gap-2">
+          <AppLogo provider={connection.provider} className="size-7 text-[9px]" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{connection.appName}</p>
+            <p className="truncate text-xs text-muted-foreground">{connection.accountEmail}</p>
+          </div>
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">Status: {connection.status}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Scopes: {connection.scopes.join(", ")}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Tools: {connection.availableTools.join(", ")}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           Last sync: {formatTimestamp(connection.lastSyncAt)}

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ActionRow } from "@/components/ops/action-row";
 import { ProviderCard } from "@/components/ops/provider-card";
 import { StatusPill } from "@/components/ops/status-pill";
+import { ToolCallRow } from "@/components/ops/tool-call-row";
 import { getMockDomainActions } from "@/features/mock-domain/actions";
 import { useMockDomainStore } from "@/features/mock-domain/store";
 
@@ -27,6 +28,13 @@ export function ConnectionsPageRoot() {
       : state.connections[0]?.id;
 
   const selectedConnection = state.connections.find((item) => item.id === selectedId);
+  const selectedConnectionToolCalls = useMemo(
+    () =>
+      [...state.toolCalls]
+        .filter((toolCall) => toolCall.connectionId === selectedConnection?.id)
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
+    [selectedConnection?.id, state.toolCalls]
+  );
 
   return (
     <section className="space-y-4">
@@ -64,7 +72,7 @@ export function ConnectionsPageRoot() {
                     variant: "destructive",
                     onClick: () => {
                       const approved = window.confirm(
-                        `Disconnect ${connection.provider} and revoke scopes?`
+                        `Disconnect ${connection.appName} and revoke scopes?`
                       );
 
                       if (approved) {
@@ -96,6 +104,25 @@ export function ConnectionsPageRoot() {
             ))}
           </div>
         ) : null}
+      </article>
+
+      <article className="rounded-xl border border-border/75 bg-background/80 p-4">
+        <h2 className="text-sm font-semibold">Recent tool calls</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Mock execution log for the selected connection and account.
+        </p>
+
+        {selectedConnectionToolCalls.length === 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            No tool calls yet for this connection.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {selectedConnectionToolCalls.map((toolCall) => (
+              <ToolCallRow key={toolCall.id} toolCall={toolCall} />
+            ))}
+          </div>
+        )}
       </article>
     </section>
   );

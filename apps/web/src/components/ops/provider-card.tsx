@@ -1,3 +1,4 @@
+import { AppLogo } from "@/components/ops/app-logo";
 import { StatusPill } from "@/components/ops/status-pill";
 import type { Connection } from "@/features/mock-domain/types";
 import { cn } from "@/lib/utils";
@@ -37,11 +38,20 @@ export function ProviderCard({ connection, selected = false, onClick, actions }:
         selected ? "border-primary/60 bg-primary/10" : onClick ? "hover:bg-muted/40" : undefined
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium capitalize">{connection.provider}</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <AppLogo provider={connection.provider} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{connection.appName}</p>
+            <p className="truncate text-xs text-muted-foreground">{connection.accountEmail}</p>
+          </div>
+        </div>
         <StatusPill tone={statusTone(connection.status)} label={connection.status} />
       </div>
       <p className="mt-1 text-xs text-muted-foreground">Scopes: {connection.scopes.join(", ")}</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Tools: {connection.availableTools.join(", ")}
+      </p>
       <p className="mt-1 text-xs text-muted-foreground">Health score: {connection.healthScore}%</p>
       {actions ? <div className="mt-3">{actions}</div> : null}
     </Comp>
