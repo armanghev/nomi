@@ -20,7 +20,10 @@ export function ActionRow({ items }: ActionRowProps) {
           type="button"
           size="sm"
           variant={item.variant ?? "outline"}
-          onClick={item.onClick}
+          onClick={(event) => {
+            event.stopPropagation();
+            item.onClick();
+          }}
           disabled={item.disabled}
         >
           {item.label}

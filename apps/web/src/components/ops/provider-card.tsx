@@ -27,15 +27,27 @@ function statusTone(status: Connection["status"]) {
 }
 
 export function ProviderCard({ connection, selected = false, onClick, actions }: ProviderCardProps) {
-  const Comp = onClick ? "button" : "article";
+  const isInteractive = Boolean(onClick);
 
   return (
-    <Comp
-      type={onClick ? "button" : undefined}
+    <div
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={
+        isInteractive
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "rounded-xl border border-border/75 bg-background/80 px-4 py-3 text-left transition-colors",
-        selected ? "border-primary/60 bg-primary/10" : onClick ? "hover:bg-muted/40" : undefined
+        selected ? "border-primary/60 bg-primary/10" : isInteractive ? "hover:bg-muted/40" : undefined,
+        isInteractive ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50" : undefined
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -54,6 +66,6 @@ export function ProviderCard({ connection, selected = false, onClick, actions }:
       </p>
       <p className="mt-1 text-xs text-muted-foreground">Health score: {connection.healthScore}%</p>
       {actions ? <div className="mt-3">{actions}</div> : null}
-    </Comp>
+    </div>
   );
 }
